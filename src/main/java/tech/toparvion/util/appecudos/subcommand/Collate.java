@@ -5,6 +5,7 @@ import tech.toparvion.util.appecudos.model.CollationResult;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -17,7 +18,7 @@ import static picocli.CommandLine.*;
 @Command(name = "collate",
         mixinStandardHelpOptions = true,
         description = "Collates given lists irrelative to their elements order")
-public class Collate implements Runnable {
+public class Collate implements Callable<CollationResult> {
 
   @Parameters(paramLabel = "LISTS", description = "Paths to lists to be analyzed. Can be concrete paths of glob " +
           "patterns pointing to either list files or directories")
@@ -32,11 +33,8 @@ public class Collate implements Runnable {
   @Option(names = {"-i", "--intersection-out"})
   private Path intersectionOutPath;
 
-  @Option(names = {"--extract"})
-  private boolean extract;
-  
   @Override
-  public void run() {
+  public CollationResult call() {
     Map<String, List<String>> allLines = new HashMap<>();
     if (root == null) {
       root = Paths.get(System.getProperty("user.dir"));
@@ -110,8 +108,6 @@ public class Collate implements Runnable {
     System.out.printf("Loaded %d lists\n", allLines.size());
     CollationResult collationResult = collate(allLines);
 
-    
-    
     // merging output
     if (mergingOutPath != null) {
       mergingOutPath = absolutize(mergingOutPath);
@@ -137,6 +133,7 @@ public class Collate implements Runnable {
         e.printStackTrace();
       }
     }
+    return collationResult;
   }
 
   private void processFatJar(Map<String, List<String>> allLines, String arg) throws IOException {
@@ -225,5 +222,13 @@ public class Collate implements Runnable {
 //              entrySize, ownElementsShare);
 //    }
     return new CollationResult(merging, intersection, owns);
+  }
+
+  public void setArgs(List<String> args) {
+    this.args = args;
+  }
+
+  public void setRoot(Path root) {
+    this.root = root;
   }
 }
