@@ -79,9 +79,9 @@ public class Collate implements Callable<CollationResult> {
           processFatJar(allLines, arg);
 
         } else {
-          System.out.printf("Processing path '%s' as plain text list...\n", arg);
-          var concretePath = absolutize(Paths.get(arg));
+          var concretePath = absolutify(Paths.get(arg));
           if (Files.isDirectory(concretePath)) {
+            System.out.printf("Processing path '%s' as directory...\n", arg);
             List<String> dirEntries = getDirFileNames(concretePath);
             allLines.put(concretePath.toString(), dirEntries);
             System.out.printf("%d entries have been put under '%s' dir concrete name\n", dirEntries.size(), concretePath);
@@ -106,11 +106,14 @@ public class Collate implements Callable<CollationResult> {
       }
     }
     System.out.printf("Loaded %d lists\n", allLines.size());
+    if (allLines.isEmpty()) {
+      return null;
+    }
     CollationResult collationResult = collate(allLines);
 
     // merging output
     if (mergingOutPath != null) {
-      mergingOutPath = absolutize(mergingOutPath);
+      mergingOutPath = absolutify(mergingOutPath);
       try {
         Set<String> merging = collationResult.getMerging();
         Files.write(mergingOutPath, merging);
@@ -123,7 +126,7 @@ public class Collate implements Callable<CollationResult> {
 
     // intersection output
     if (intersectionOutPath != null) {
-      intersectionOutPath = absolutize(intersectionOutPath);
+      intersectionOutPath = absolutify(intersectionOutPath);
       try {
         Set<String> intersection = collationResult.getIntersection();
         Files.write(intersectionOutPath, intersection);
@@ -138,7 +141,7 @@ public class Collate implements Callable<CollationResult> {
 
   private void processFatJar(Map<String, List<String>> allLines, String arg) throws IOException {
     System.out.printf("Processing path '%s' as Spring Boot 'fat' JAR...\n", arg);
-    var fatJarPath = absolutize(Paths.get(arg));
+    var fatJarPath = absolutify(Paths.get(arg));
     try (JarFile jarFile = new JarFile(fatJarPath.toString())) {
       String startClass = jarFile.getManifest().getMainAttributes().getValue("Start-Class");
       if (startClass == null) {
@@ -163,14 +166,14 @@ public class Collate implements Callable<CollationResult> {
             && entryName.toLowerCase().endsWith(".jar");
   }
 
-  private Path absolutize(Path path) {
+  private Path absolutify(Path path) {
     if (!path.isAbsolute()) {
       path = root.resolve(path);
     }
     return path;
   }
 
-  private List<String> getDirFileNames(Path dirPath) throws IOException {
+  private static List<String> getDirFileNames(Path dirPath) throws IOException {
     List<String> dirEntries = new ArrayList<>();
     try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
       for (Path dirEntry : dirStream) {
@@ -214,6 +217,7 @@ public class Collate implements Callable<CollationResult> {
     System.out.printf("Merged list size:  %d\n", merging.size());
     System.out.printf("Common part stats: min=%d%%, avg=%.0f%%, max=%d%%\n", commonStats.getMin(), commonStats.getAverage(), commonStats.getMax());
     System.out.printf("Average own part size: %.0f\n", averageOwnShare);
+    System.out.println("=======================================");
 //    for (Map.Entry<String, List<String>> listEntry : allLines.entrySet()) {
 //      int entrySize = listEntry.getValue().size();
 //      int ownElements = entrySize - intersection.size();

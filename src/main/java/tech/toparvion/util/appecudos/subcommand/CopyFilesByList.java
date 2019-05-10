@@ -1,5 +1,7 @@
 package tech.toparvion.util.appecudos.subcommand;
 
+import tech.toparvion.util.appecudos.Constants;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,10 +21,6 @@ import static picocli.CommandLine.*;
         mixinStandardHelpOptions = true,
         description = "Copies files specified as a list")
 public class CopyFilesByList implements Runnable {
-  
-  private static final String ARG_FILE_INTRO = 
-          "-classpath\n" +
-          "# Common classpath part (shared)\n";
 
   @Option(names = {"-b", "--base-dir", "--basedir"}, description = "Path to directory against which paths from list file will be resolved")
   private Path baseDir;
@@ -60,7 +58,7 @@ public class CopyFilesByList implements Runnable {
       String classpath = jarList.stream()
               .map(Path::toString)
               .collect(joining(":\\\n  ", " \"", "\""));
-      String argFileContent = ARG_FILE_INTRO + classpath;
+      String argFileContent = Constants.COMMON_ARGFILE_INTRO + classpath;
       Files.writeString(argFilePath, argFileContent);
       System.out.printf("Arg file created: %s\n", argFilePath);
 

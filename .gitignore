@@ -81,3 +81,5 @@ fabric.properties
 /.idea/encodings.xml
 /.idea/misc.xml
 /.idea/inspectionProfiles/Project_Default.xml
+/.idea/fileTemplates/includes/File Header.java
+/.idea/artifacts/*
