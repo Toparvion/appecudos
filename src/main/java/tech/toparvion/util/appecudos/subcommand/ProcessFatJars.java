@@ -21,6 +21,7 @@ import static picocli.CommandLine.Command;
 import static tech.toparvion.util.appecudos.Constants.*;
 
 /**
+ * Stage B
  * @author Toparvion
  * TODO extract nested JARs processing and start class saving into separate reusable subcommands
  */
@@ -47,7 +48,6 @@ public class ProcessFatJars implements Callable<List<String>> {
   public List<String> call() {
     try {
       assert root.isAbsolute() : "--root must be absolute if specified";
-      assert !outDir.isAbsolute() : "--out-dir must NOT be absolute if specified";
       setupExclusionMatchers();
       PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + fatJarsGlob);
       // here we filter JAR files only, postponing detection if they fat or not to 'process' method
@@ -71,9 +71,9 @@ public class ProcessFatJars implements Callable<List<String>> {
         System.err.printf("File '%s' is not a Spring Boot 'fat' JAR. Skipped.\n", fatJarPath);
         return null;
       }
+      String appName = startClass.substring(startClass.lastIndexOf('.')+1).toLowerCase();
       // prepare local output dir (removing its content firstly if needed) 
-//       Path localOutDir = fatJarPath.resolveSibling(outDir);
-       Path localOutDir = Util.prepareDir(fatJarPath.resolveSibling(outDir));
+      Path localOutDir = Util.prepareDir(outDir.resolve(appName));
       
       // B.2 - store start class name in a text file
       Path startClassFile = localOutDir.resolve(START_CLASS_FILE_NAME);
@@ -133,7 +133,7 @@ public class ProcessFatJars implements Callable<List<String>> {
     try (JarFile jarFile = new JarFile(fatJarPath.toString(), false)) {
       String startClass = jarFile.getManifest().getMainAttributes().getValue(START_CLASS_ATTRIBUTE_NAME);
       if (startClass != null) {
-        System.out.printf("Found Start-Class '%s'.\n", startClass);
+        System.out.printf("Found Start-Class '%s' in file '%s'.\n", startClass, fatJarPath);
         return startClass;
       }
     } 
@@ -164,5 +164,9 @@ public class ProcessFatJars implements Callable<List<String>> {
 
   public void setExclusionGlobs(Set<String> exclusionGlobs) {
     this.exclusionGlobs = exclusionGlobs;
+  }
+
+  public void setOutDir(Path outDir) {
+    this.outDir = outDir;
   }
 }

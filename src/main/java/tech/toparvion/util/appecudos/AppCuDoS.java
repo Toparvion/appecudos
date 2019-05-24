@@ -41,18 +41,18 @@ public class AppCuDoS implements Runnable {
   }
 
   @Option(names = {"--class-lists", "-c"})
-  private String classListGlob;
+  private List<String> classListGlob;
   
   @Option(names = {"--fat-jars", "-f"})
   private String fatJarsGlob;
   
-  @Option(names = {"--shared-dir", "-o"})
-  private Path outDirPath;
+  @Option(names = {"--out-dir", "-o"})
+  private Path outDir;
   
   @Option(names = {"--exclusion", "-e"})
   private Set<String> exclusionGlobs = new HashSet<>();  
   
-  @Option(names = {"--root", "-r"})
+  @Option(names = {"--search-dir", "-r"})
   private Path root = Paths.get(System.getProperty("user.dir"));
 
   public static void main(String[] args) {
@@ -63,11 +63,11 @@ public class AppCuDoS implements Runnable {
   public void run() {
     fixPaths();
     log.log(INFO, "AppCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, commonDirPath={2}, " +
-                    "exclusions={3}, root={4}", classListGlob, fatJarsGlob, outDirPath, exclusionGlobs, root);
+                    "exclusions={3}, root={4}", classListGlob, fatJarsGlob, outDir, exclusionGlobs, root);
     try {
-      processClassLists(root, classListGlob, exclusionGlobs);
-      List<String> libDirs = processFatJars(root, fatJarsGlob, exclusionGlobs);
-      List<Path> commonLibPaths = createCommonArchive(libDirs, outDirPath);
+      processClassLists(root, classListGlob, exclusionGlobs, outDir);
+      List<String> libDirs = processFatJars(root, fatJarsGlob, exclusionGlobs, outDir);
+      List<Path> commonLibPaths = createCommonArchive(libDirs, outDir);
       preparePrivateArgFiles(libDirs, commonLibPaths);
       log.log(INFO, "AppCuDoS execution took {0} ms.", ManagementFactory.getRuntimeMXBean().getUptime());
       
@@ -82,12 +82,13 @@ public class AppCuDoS implements Runnable {
    * @param root root directory of microservices
    * @param classListGlob relative Glob pattern to find out files to process 
    * @param exclusionGlobs a set of exlcuding globs
+   * @param outDir output directory path, e.g. {@code _shared/}
    * @throws IOException in case of any IO error
    */
-  private void processClassLists(Path root, String classListGlob, Set<String> exclusionGlobs) throws IOException {
+  private void processClassLists(Path root, List<String> classListGlob, Set<String> exclusionGlobs, Path outDir) throws IOException {
     // A.1 - find common part among all class lists
     Collate collateCommand = new Collate();
-    collateCommand.setArgs(List.of(classListGlob));
+    collateCommand.setArgs(classListGlob);
     collateCommand.setRoot(root);
     collateCommand.setExclusionGlobs(exclusionGlobs);
     var result = collateCommand.call();
@@ -97,7 +98,7 @@ public class AppCuDoS implements Runnable {
     }
     
     // A.2 - save the common part as separate list in output directory
-    Path commonClassListPath = outDirPath.resolve(COMMON_CLASS_LIST_PATH);
+    Path commonClassListPath = outDir.resolve(SHARED_CLASS_LIST_PATH);
     Files.createDirectories(commonClassListPath.getParent());
     Set<String> intersection = result.getIntersection();
     Files.write(commonClassListPath, intersection);
@@ -110,15 +111,17 @@ public class AppCuDoS implements Runnable {
    * @param root root directory of microservices
    * @param fatJarsGlob relative Glob pattern to find out files to process
    * @param exclusionGlobs a set of exlcuding globs
+   * @param outDir output directory path, e.g. {@code _shared/}
    * @return a list of string paths to {@code lib} directories created next to fat JARs
    */
-  private List<String> processFatJars(Path root, String fatJarsGlob, Set<String> exclusionGlobs) {
+  private List<String> processFatJars(Path root, String fatJarsGlob, Set<String> exclusionGlobs, Path outDir) {
     // B.(1-4)
-    ProcessFatJars extractCommand = new ProcessFatJars();
-    extractCommand.setRoot(root);
-    extractCommand.setFatJarsGlob(fatJarsGlob);
-    extractCommand.setExclusionGlobs(exclusionGlobs);
-    List<String> libOutDirPaths = extractCommand.call();
+    ProcessFatJars processCommand = new ProcessFatJars();
+    processCommand.setRoot(root);
+    processCommand.setFatJarsGlob(fatJarsGlob);
+    processCommand.setExclusionGlobs(exclusionGlobs);
+    processCommand.setOutDir(outDir);
+    List<String> libOutDirPaths = processCommand.call();
     if (libOutDirPaths.isEmpty()) {
       log.log(ERROR, "No fat JARs were processed by Glob ''{0}'' in directory ''{1}''.", fatJarsGlob, root);
       System.exit(1);
@@ -141,7 +144,7 @@ public class AppCuDoS implements Runnable {
     
     // C.2 - copy all common libs from apps' local dirs to common AppCDS directory
     // C.4 - remember the list of common libs with their absolute paths
-    List<Path> commonLibPaths = copyCommonLibs(libDirs, outDirPath, intersection);
+    List<Path> commonLibPaths = copySharedLibs(libDirs, outDirPath, intersection);
 
     // C.3 - compose arg-file from paths of copied common libraries
     createCommonArgFile(outDirPath, commonLibPaths);
@@ -165,11 +168,11 @@ public class AppCuDoS implements Runnable {
   }
 
   /**
-   * C.2 - copy all common libs to common AppCDS directory 
+   * C.2 - copy all common libs into shared AppCDS directory 
    */
-  private List<Path> copyCommonLibs(List<String> libDirs, Path outDirPath, Set<String> intersection) throws IOException {
+  private List<Path> copySharedLibs(List<String> libDirs, Path outDirPath, Set<String> intersection) throws IOException {
     Path sourceLibDir = Paths.get(libDirs.get(0));  // as common part is the same in all dirs, we can take the first one
-    Path targetLibDir = Util.prepareDir(outDirPath.resolve(LIB_DIR_NAME));
+    Path targetLibDir = Util.prepareDir(outDirPath.resolve(SHARED_ROOT).resolve(LIB_DIR_NAME));
 
     List<Path> commonLibPaths = Files.walk(sourceLibDir)
             .filter(sourceFile -> intersection.contains(sourceFile.getFileName().toString()))
@@ -177,7 +180,7 @@ public class AppCuDoS implements Runnable {
             .filter(Objects::nonNull)
             .collect(toList());
     if (commonLibPaths.size() != intersection.size()) {
-      log.log(WARNING, "Only {0} of {1} common libraries were copied. Common archive may be incorrect!", 
+      log.log(WARNING, "Only {0} of {1} common libraries were copied. Shared archive may be incorrect!", 
               commonLibPaths.size(), intersection.size());
     } else {
       log.log(INFO, "All {0} common libraries were copied from ''{1}'' to ''{2}''.", commonLibPaths.size(), 
@@ -194,7 +197,7 @@ public class AppCuDoS implements Runnable {
             .map(Path::toString)
             .collect(TO_CLASSPATH);
     String argFileContent = COMMON_ARGFILE_INTRO + classpath;
-    Path argFilePath = outDirPath.resolve(COMMON_ARGFILE_PATH);
+    Path argFilePath = outDirPath.resolve(SHARED_ARGFILE_PATH);
     Files.writeString(argFilePath, argFileContent);
     log.log(INFO, "Common arg-file created: {0}", argFilePath);
   }
@@ -203,7 +206,7 @@ public class AppCuDoS implements Runnable {
    * C.5 - execute java -Xshare:dump with all the accumulated data
    */
   private void executeJavaXShareDump(Path outDirPath) throws IOException, InterruptedException {
-    Util.prepareDir(outDirPath.resolve(COMMON_ARCHIVE_PATH.getParent()));
+    Util.prepareDir(outDirPath.resolve(SHARED_ARCHIVE_PATH.getParent()));
     var javaExecutable = System.getProperty("os.name").toLowerCase().startsWith("windows")
             ? "java.exe"
             : "java";
@@ -215,14 +218,15 @@ public class AppCuDoS implements Runnable {
     var javaCommand = List.of(
             javaPath,
             "-Xshare:dump",
-            "-XX:SharedClassListFile=" + COMMON_CLASS_LIST_PATH,
-            "-XX:SharedArchiveFile=" + COMMON_ARCHIVE_PATH,
-            "@list/classpath.arg"
+            "-XX:SharedClassListFile=" + SHARED_CLASS_LIST_PATH,
+            "-XX:SharedArchiveFile=" + SHARED_ARCHIVE_PATH,
+            "@" + SHARED_ARGFILE_PATH
     );
-    log.log(INFO, "Starting Java with ''{0}''...", String.join(" ", javaCommand));
+    var workDir = outDirPath.toFile();
+    log.log(INFO, "Starting Java with ''{0}'' at directory ''{1}''...", String.join(" ", javaCommand), workDir);
     ProcessBuilder javaLauncher = new ProcessBuilder();
     javaLauncher.command(javaCommand);
-    javaLauncher.directory(outDirPath.toFile());
+    javaLauncher.directory(workDir);
     javaLauncher.inheritIO();
     int javaExitCode = javaLauncher.start().waitFor();
     if (javaExitCode == 0) {
@@ -243,7 +247,7 @@ public class AppCuDoS implements Runnable {
     deleteCommonLibs(libDirs, commonLibPaths);
     
     // D.2 - compose app's own argfile
-    Path jsaPath = outDirPath.resolve(COMMON_ARCHIVE_PATH);
+    Path jsaPath = outDir.resolve(SHARED_ARCHIVE_PATH);
     for (String libDir : libDirs) {
       Path libDirPath = Paths.get(libDir);
       List<Path> privateLibPaths = getDirListing(libDirPath);
@@ -317,8 +321,8 @@ public class AppCuDoS implements Runnable {
     }
 
     // fix output dir path
-    if (!outDirPath.isAbsolute()) {
-      outDirPath = root.resolve(outDirPath);
+    if (!outDir.isAbsolute()) {
+      outDir = root.resolve(outDir);
     }
   }
 }

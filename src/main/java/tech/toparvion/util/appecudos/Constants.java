@@ -13,7 +13,6 @@ import static java.util.stream.Collectors.joining;
 public final class Constants {
   private Constants() { }
 
-
   public static final String COMMON_ARGFILE_INTRO = 
           "-classpath\n" +
           "# Common (shared) classpath\n";
@@ -28,9 +27,10 @@ public final class Constants {
 
   public static final Collector<CharSequence, ?, String> TO_CLASSPATH = joining(":\\\n  ", " \"", "\"");
 
-  public static final Path COMMON_CLASS_LIST_PATH = Paths.get("list/classes.list");
-  public static final Path COMMON_ARGFILE_PATH = Paths.get("list/classpath.arg");
-  public static final Path COMMON_ARCHIVE_PATH = Paths.get("jsa/classes.jsa");
+  public static final Path SHARED_ROOT = Paths.get("_shared/");
+  public static final Path SHARED_CLASS_LIST_PATH = SHARED_ROOT.resolve("list/classes.list");
+  public static final Path SHARED_ARGFILE_PATH = SHARED_ROOT.resolve("list/classpath.arg");
+  public static final Path SHARED_ARCHIVE_PATH = SHARED_ROOT.resolve("jsa/classes.jsa");
 
   public static final String APPCDS_ARGFILE_NAME = "appcds.arg";
   public static final String START_CLASS_FILE_NAME = "start-class.txt";

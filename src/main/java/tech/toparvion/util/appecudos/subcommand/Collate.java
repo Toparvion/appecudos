@@ -45,7 +45,7 @@ public class Collate implements Callable<CollationResult> {
     for (String arg : args) {
       try {
         if (arg.contains("*")) {
-          System.out.printf("Path '%s' contains wildcard(s), will process it as Glob pattern...\n", arg);
+          System.out.printf("Path '%s' contains wildcard(s), will be processed as Glob pattern...\n", arg);
           PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
           List<Path> matchedPaths = Files.walk(root)
 //                  .filter(path -> matcher.matches(root.relativize(path)))
@@ -224,17 +224,17 @@ public class Collate implements Callable<CollationResult> {
             .mapToDouble(lines -> (double) intersection.size() / (double) lines.size())
             .mapToLong(value -> Math.round(value * 100.0))
             .summaryStatistics();
-    double averageOwnShare = owns.values().stream()
+    var sizeStats = allLines.values().stream()
             .mapToInt(List::size)
-            .average()
-            .orElseThrow();
+            .summaryStatistics();
 
     // output
     System.out.println("=======================================");
+    System.out.printf("List sizes: min=%d, avg=%.0f, max=%d, cnt=%d\n", sizeStats.getMin(), sizeStats.getAverage(),
+            sizeStats.getMax(), sizeStats.getCount());
     System.out.printf("Intersection size: %d\n", intersection.size());
     System.out.printf("Merged list size:  %d\n", merging.size());
     System.out.printf("Common part stats: min=%d%%, avg=%.0f%%, max=%d%%\n", commonStats.getMin(), commonStats.getAverage(), commonStats.getMax());
-    System.out.printf("Average own part size: %.0f\n", averageOwnShare);
     System.out.println("=======================================");
 //    for (Map.Entry<String, List<String>> listEntry : allLines.entrySet()) {
 //      int entrySize = listEntry.getValue().size();
