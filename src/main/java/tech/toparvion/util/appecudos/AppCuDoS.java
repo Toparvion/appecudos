@@ -10,10 +10,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static java.lang.System.Logger.Level.*;
@@ -43,14 +40,17 @@ public class AppCuDoS implements Runnable {
     log = System.getLogger(AppCuDoS.class.toString());
   }
 
-  @Option(names = {"--class-lists", "-c"}, required = true)
+  @Option(names = {"--class-lists", "-c"})
   private String classListGlob;
   
-  @Option(names = {"--fat-jars", "-f"}, required = true)
+  @Option(names = {"--fat-jars", "-f"})
   private String fatJarsGlob;
   
-  @Option(names = {"--common-out-dir", "-o"}, required = true)
+  @Option(names = {"--shared-dir", "-o"})
   private Path outDirPath;
+  
+  @Option(names = {"--exclusion", "-e"})
+  private Set<String> exclusionGlobs = new HashSet<>();  
   
   @Option(names = {"--root", "-r"})
   private Path root = Paths.get(System.getProperty("user.dir"));
@@ -62,11 +62,11 @@ public class AppCuDoS implements Runnable {
   @Override
   public void run() {
     fixPaths();
-    log.log(INFO, "AppCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, commonDirPath={2}, root={3}", 
-            classListGlob, fatJarsGlob, outDirPath, root);
+    log.log(INFO, "AppCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, commonDirPath={2}, " +
+                    "exclusions={3}, root={4}", classListGlob, fatJarsGlob, outDirPath, exclusionGlobs, root);
     try {
-      processClassLists(root, classListGlob);
-      List<String> libDirs = processFatJars(root, fatJarsGlob);
+      processClassLists(root, classListGlob, exclusionGlobs);
+      List<String> libDirs = processFatJars(root, fatJarsGlob, exclusionGlobs);
       List<Path> commonLibPaths = createCommonArchive(libDirs, outDirPath);
       preparePrivateArgFiles(libDirs, commonLibPaths);
       log.log(INFO, "AppCuDoS execution took {0} ms.", ManagementFactory.getRuntimeMXBean().getUptime());
@@ -81,13 +81,15 @@ public class AppCuDoS implements Runnable {
    * Stage A - class lists processing
    * @param root root directory of microservices
    * @param classListGlob relative Glob pattern to find out files to process 
+   * @param exclusionGlobs a set of exlcuding globs
    * @throws IOException in case of any IO error
    */
-  private void processClassLists(Path root, String classListGlob) throws IOException {
+  private void processClassLists(Path root, String classListGlob, Set<String> exclusionGlobs) throws IOException {
     // A.1 - find common part among all class lists
     Collate collateCommand = new Collate();
     collateCommand.setArgs(List.of(classListGlob));
     collateCommand.setRoot(root);
+    collateCommand.setExclusionGlobs(exclusionGlobs);
     var result = collateCommand.call();
     if (result == null) {
       log.log(ERROR, "No class lists found by Glob pattern ''{0}''. Exiting.", classListGlob);
@@ -107,13 +109,15 @@ public class AppCuDoS implements Runnable {
    * Stage B - fat JARs processing
    * @param root root directory of microservices
    * @param fatJarsGlob relative Glob pattern to find out files to process
+   * @param exclusionGlobs a set of exlcuding globs
    * @return a list of string paths to {@code lib} directories created next to fat JARs
    */
-  private List<String> processFatJars(Path root, String fatJarsGlob) {
+  private List<String> processFatJars(Path root, String fatJarsGlob, Set<String> exclusionGlobs) {
     // B.(1-4)
     ProcessFatJars extractCommand = new ProcessFatJars();
     extractCommand.setRoot(root);
     extractCommand.setFatJarsGlob(fatJarsGlob);
+    extractCommand.setExclusionGlobs(exclusionGlobs);
     List<String> libOutDirPaths = extractCommand.call();
     if (libOutDirPaths.isEmpty()) {
       log.log(ERROR, "No fat JARs were processed by Glob ''{0}'' in directory ''{1}''.", fatJarsGlob, root);

@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.*;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -32,19 +34,26 @@ public class ProcessFatJars implements Callable<List<String>> {
 
   @Option(names = {"--fat-jars", "-j"}, required = true)
   private String fatJarsGlob;
+  
+  @Option(names = {"--exclusion", "-e"})
+  private Set<String> exclusionGlobs = new HashSet<>();  
 
   @Option(names = {"--out-dir", "-o"})
   private Path outDir = Paths.get("appcds");
+  
+  private Set<PathMatcher> exclusionMatchers = new HashSet<>();
   
   @Override
   public List<String> call() {
     try {
       assert root.isAbsolute() : "--root must be absolute if specified";
       assert !outDir.isAbsolute() : "--out-dir must NOT be absolute if specified";
+      setupExclusionMatchers();
       PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + fatJarsGlob);
       // here we filter JAR files only, postponing detection if they fat or not to 'process' method
       return Files.walk(root)
-              .filter(path -> pathMatcher.matches(root.relativize(path)))
+              .filter(pathMatcher::matches)
+              .filter(this::filterOutExclusions)
               .map(this::process)
               .filter(Objects::nonNull)
               .collect(toList());
@@ -131,6 +140,19 @@ public class ProcessFatJars implements Callable<List<String>> {
     return null;
   }
 
+  private void setupExclusionMatchers() {
+    if (exclusionMatchers.isEmpty()) {
+      exclusionGlobs.forEach(exclusionGlob -> 
+              exclusionMatchers.add(FileSystems.getDefault().getPathMatcher("glob:" + exclusionGlob)));
+    }
+  }
+
+  private boolean filterOutExclusions(Path path) {
+    return exclusionMatchers.stream()
+            .filter(matcher -> matcher.matches(path))
+            .findAny()
+            .isEmpty();
+  }  
 
   public void setRoot(Path root) {
     this.root = root;
@@ -138,5 +160,9 @@ public class ProcessFatJars implements Callable<List<String>> {
 
   public void setFatJarsGlob(String fatJarsGlob) {
     this.fatJarsGlob = fatJarsGlob;
+  }
+
+  public void setExclusionGlobs(Set<String> exclusionGlobs) {
+    this.exclusionGlobs = exclusionGlobs;
   }
 }

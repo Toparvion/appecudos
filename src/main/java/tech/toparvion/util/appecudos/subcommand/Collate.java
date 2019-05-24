@@ -25,28 +25,32 @@ public class Collate implements Callable<CollationResult> {
   private List<String> args;
   
   @Option(names = {"-r", "--root"})
-  private Path root;
+  private Path root = Paths.get(System.getProperty("user.dir"));
+  
+  @Option(names = {"--exclusion", "-e"})
+  private Set<String> exclusionGlobs = new HashSet<>();
   
   @Option(names = {"-m", "--merging-out"})
   private Path mergingOutPath;
   
   @Option(names = {"-i", "--intersection-out"})
   private Path intersectionOutPath;
+  
+  private Set<PathMatcher> exclusionMatchers = new HashSet<>();
 
   @Override
   public CollationResult call() {
+    setupExclusionMatchers();
     Map<String, List<String>> allLines = new HashMap<>();
-    if (root == null) {
-      root = Paths.get(System.getProperty("user.dir"));
-    }
     for (String arg : args) {
       try {
         if (arg.contains("*")) {
           System.out.printf("Path '%s' contains wildcard(s), will process it as Glob pattern...\n", arg);
           PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
           List<Path> matchedPaths = Files.walk(root)
-                  .filter(path -> matcher.matches(root.relativize(path)))
-                  //.peek(System.out::println)
+//                  .filter(path -> matcher.matches(root.relativize(path)))
+                  .filter(matcher::matches)
+                  .filter(this::filterOutExclusions)
                   .collect(toList());
           for (Path matchedPath : matchedPaths) {
             if (Files.isDirectory(matchedPath)) {
@@ -62,7 +66,7 @@ public class Collate implements Callable<CollationResult> {
                   processFatJar(allLines, matchedPathString);
 
                 } else {
-                  System.out.printf("Processing path '%s' as plain list file...\n", arg);
+                  System.out.printf("Processing path '%s' as plain list file...\n", matchedPath);
                   List<String> lines = Files.readAllLines(matchedPath);
                   allLines.put(matchedPath.toString(), lines);
                   System.out.printf("%d lines have been put under '%s' matched file name\n", lines.size(), matchedPath);
@@ -137,6 +141,20 @@ public class Collate implements Callable<CollationResult> {
       }
     }
     return collationResult;
+  }
+
+  private void setupExclusionMatchers() {
+    if (exclusionMatchers.isEmpty()) {
+      exclusionGlobs.forEach(exclusionGlob -> 
+              exclusionMatchers.add(FileSystems.getDefault().getPathMatcher("glob:" + exclusionGlob)));
+    }
+  }
+
+  private boolean filterOutExclusions(Path path) {
+    return exclusionMatchers.stream()
+            .filter(matcher -> matcher.matches(path))
+            .findAny()
+            .isEmpty();
   }
 
   private void processFatJar(Map<String, List<String>> allLines, String arg) throws IOException {
@@ -234,5 +252,9 @@ public class Collate implements Callable<CollationResult> {
 
   public void setRoot(Path root) {
     this.root = root;
+  }
+
+  public void setExclusionGlobs(Set<String> exclusionGlobs) {
+    this.exclusionGlobs = exclusionGlobs;
   }
 }
