@@ -31,7 +31,8 @@ import static tech.toparvion.util.appecudos.Constants.*;
                 Collate.class,
                 CopyFilesByList.class,
                 ProcessFatJars.class,
-                ConvertJar.class
+                ConvertJar.class,
+                Estimate.class
         })
 public class AppCuDoS implements Runnable {
   private static final System.Logger log;
@@ -264,6 +265,7 @@ public class AppCuDoS implements Runnable {
       log.log(INFO, "Written {0} classpath entries to application arg-file ''{1}''.", 
               (commonLibsCount+privateLibsCount), privateArgFilePath);
     }
+    log.log(INFO, "Prepared {0} application(s) for running with AppCDS.", libDirs.size());
   }
 
   /**
