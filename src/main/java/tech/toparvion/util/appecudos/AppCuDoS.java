@@ -81,8 +81,10 @@ public class AppCuDoS implements Runnable {
       suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
       
     } catch (FileAlreadyExistsException lockException) {
-      log.log(WARNING, "Directory ''{0}'' is already occupied by another AppCDS preparing process. Exiting.", outDir);
+      log.log(WARNING, "Directory ''{0}'' is already occupied by another AppCDS preparing process." +
+              "Please re-launch this process again a few minutes later.", outDir);
       // do not remove lockFile here as it may be requested by other CuDoS processes
+      System.exit(1);     // to reveal the fact for calling side
       
     } catch (Exception e) {
       e.printStackTrace();
