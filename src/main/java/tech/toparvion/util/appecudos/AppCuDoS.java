@@ -6,10 +6,7 @@ import tech.toparvion.util.appecudos.subcommand.*;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -19,6 +16,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static picocli.CommandLine.Command;
 import static tech.toparvion.util.appecudos.Constants.*;
+import static tech.toparvion.util.appecudos.Util.suppress;
 
 /**
  * @author Toparvion
@@ -36,6 +34,7 @@ import static tech.toparvion.util.appecudos.Constants.*;
         })
 public class AppCuDoS implements Runnable {
   private static final System.Logger log;
+
   static {
     System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
     log = System.getLogger(AppCuDoS.class.toString());
@@ -63,19 +62,34 @@ public class AppCuDoS implements Runnable {
   @Override
   public void run() {
     fixPaths();
-    log.log(INFO, "AppCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, commonDirPath={2}, " +
+    log.log(INFO, "AppCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, outDirPath={2}, " +
                     "exclusions={3}, root={4}", classListGlob, fatJarsGlob, outDir, exclusionGlobs, root);
     try {
+      // the following will throw FileAlreadyExistsException in case when another process is already acting 
+      Files.createFile(outDir.resolve(LOCK_FILE_NAME));
+      
+      // Stage A - Process class lists
       processClassLists(root, classListGlob, exclusionGlobs, outDir);
+      // Stage B - Process every found 'fat' JAR
       List<String> libDirs = processFatJars(root, fatJarsGlob, exclusionGlobs, outDir);
+      // Stage C - Create common (shared) archive
       List<Path> commonLibPaths = createCommonArchive(libDirs, outDir);
+      // Stage D - Prepare application for running with AppCDS
       preparePrivateArgFiles(libDirs, commonLibPaths);
+      
       log.log(INFO, "AppCuDoS execution took {0} ms.", ManagementFactory.getRuntimeMXBean().getUptime());
+      suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
+      
+    } catch (FileAlreadyExistsException lockException) {
+      log.log(WARNING, "Directory ''{0}'' is already occupied by another AppCDS preparing process. Exiting.", outDir);
+      // do not remove lockFile here as it may be requested by other CuDoS processes
       
     } catch (Exception e) {
       e.printStackTrace();
+      suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
       System.exit(1);
-    }
+      
+    } 
   }
 
   /**
@@ -229,9 +243,11 @@ public class AppCuDoS implements Runnable {
     javaLauncher.command(javaCommand);
     javaLauncher.directory(workDir);
     javaLauncher.inheritIO();
+    var startTime = System.currentTimeMillis();
     int javaExitCode = javaLauncher.start().waitFor();
+    var stopTime = System.currentTimeMillis();
     if (javaExitCode == 0) {
-      log.log(INFO, "Shared archive has been created successfully.", javaExitCode);
+      log.log(INFO, "Shared archive has been created successfully in {0} ms.", (stopTime-startTime));
     } else {
       log.log(ERROR, "Failed to create shared archive (see log). Java process exited with code {0}.", javaExitCode);
       System.exit(1);

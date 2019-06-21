@@ -33,7 +33,7 @@ public final class Util {
    * @param action any action that may throw {@link IOException}, e.g.
    * {@link java.nio.file.Files#writeString(Path, CharSequence, OpenOption...) Files#writeString}
    */
-  public static void suppress(ExplosiveVoidAction action) {
+  public static void wrap(ExplosiveVoidAction action) {
     try {
       action.act();
       
@@ -42,11 +42,22 @@ public final class Util {
     }
   }
 
-  public static <T> T suppress(ExplosiveReturningAction<T> action) {
+  public static <T> T wrap(ExplosiveReturningAction<T> action) {
     try {
       return action.act();
+      
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public static void suppress(ExplosiveVoidAction action) {
+    try {
+      action.act();
+    
+    } catch (IOException e) {
+      e.printStackTrace();
+      // and nothing more to do here
     }
   }
 

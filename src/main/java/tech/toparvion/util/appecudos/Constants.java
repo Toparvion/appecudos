@@ -10,6 +10,7 @@ import static java.util.stream.Collectors.joining;
 /**
  * @author Toparvion
  */
+@SuppressWarnings("WeakerAccess")     // access level is left maximum for simplicity 
 public final class Constants {
   private Constants() { }
 
@@ -37,4 +38,5 @@ public final class Constants {
   public static final Attributes.Name START_CLASS_ATTRIBUTE_NAME = new Attributes.Name("Start-Class");
 
   public static final String LIB_DIR_NAME = "lib";
+  public static final String LOCK_FILE_NAME = ".lock";
 }
