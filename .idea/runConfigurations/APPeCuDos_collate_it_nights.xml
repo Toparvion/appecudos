@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="APPeCuDos collate it-nights" type="Application" factoryName="Application" editBeforeRun="true">
+    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.AppCuDoS" />
+    <module name="appecudos.main" />
+    <option name="PROGRAM_PARAMETERS" value="collate **.list" />
+    <option name="WORKING_DIRECTORY" value="E:/Issues/Focus/Проект 'Восход'/project-uprise/Материалы доклада/Практика на IT-Nights/class-lists" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="tech.toparvion.util.appecudos.subcommand.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

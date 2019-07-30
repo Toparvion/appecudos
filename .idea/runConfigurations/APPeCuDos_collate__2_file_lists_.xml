@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="APPeCuDos collate (2 file lists)" type="Application" factoryName="Application" editBeforeRun="true">
+    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.AppCuDoS" />
+    <module name="appecudos.main" />
+    <option name="PROGRAM_PARAMETERS" value="collate work/classes.merged.list work/classes.trial12.list" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="tech.toparvion.util.appecudos.subcommand.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

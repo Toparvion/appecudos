@@ -83,3 +83,5 @@ fabric.properties
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/fileTemplates/includes/File Header.java
 /.idea/artifacts/*
+
+.gradle/

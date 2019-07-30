@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="APPeCuDos estimate" type="Application" factoryName="Application" editBeforeRun="true">
+    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.AppCuDoS" />
+    <module name="appecudos.main" />
+    <option name="PROGRAM_PARAMETERS" value="estimate **/class-load.log" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../upc2/microservices" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="tech.toparvion.util.appecudos.subcommand.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
