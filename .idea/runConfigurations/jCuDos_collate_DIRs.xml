@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="APPeCuDos collate (all fat-jars)" type="Application" factoryName="Application" editBeforeRun="true">
-    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.AppCuDoS" />
+  <configuration default="false" name="jCuDos collate DIRs" type="Application" factoryName="Application" editBeforeRun="true">
+    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.JCudos" />
     <module name="appecudos.main" />
-    <option name="PROGRAM_PARAMETERS" value="collate --root $PROJECT_DIR$/../../upc2/microservices */build/libs/*.jar" />
+    <option name="PROGRAM_PARAMETERS" value="collate --root C:/upc2/microservices --intersection-out _common/jars.list */build/libs/deps" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="tech.toparvion.util.appecudos.subcommand.*" />

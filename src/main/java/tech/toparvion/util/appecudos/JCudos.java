@@ -21,8 +21,8 @@ import static tech.toparvion.util.appecudos.Util.suppress;
 /**
  * @author Toparvion
  */
-@Command(name = "appcudos", 
-        mixinStandardHelpOptions = true, version = "AppCuDoS v1.0",
+@Command(name = "jcudos", 
+        mixinStandardHelpOptions = true, version = "jCuDoS v1.0",
         subcommands = {
                 ListAllClasses.class,
                 ListMergedClasses.class,
@@ -32,12 +32,12 @@ import static tech.toparvion.util.appecudos.Util.suppress;
                 ConvertJar.class,
                 Estimate.class
         })
-public class AppCuDoS implements Runnable {
+public class JCudos implements Runnable {
   private static final System.Logger log;
 
   static {
     System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
-    log = System.getLogger(AppCuDoS.class.toString());
+    log = System.getLogger(JCudos.class.toString());
   }
 
   @Option(names = {"--class-lists", "-c"})
@@ -56,13 +56,13 @@ public class AppCuDoS implements Runnable {
   private Path root = Paths.get(System.getProperty("user.dir"));
 
   public static void main(String[] args) {
-    CommandLine.run(new AppCuDoS(), args);
+    CommandLine.run(new JCudos(), args);
   }
 
   @Override
   public void run() {
     fixPaths();
-    log.log(INFO, "AppCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, outDirPath={2}, " +
+    log.log(INFO, "jCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, outDirPath={2}, " +
                     "exclusions={3}, root={4}", classListGlob, fatJarsGlob, outDir, exclusionGlobs, root);
     try {
       // the following will throw FileAlreadyExistsException in case when another process is already acting 
@@ -77,7 +77,7 @@ public class AppCuDoS implements Runnable {
       // Stage D - Prepare application for running with AppCDS
       preparePrivateArgFiles(libDirs, commonLibPaths);
       
-      log.log(INFO, "AppCuDoS execution took {0} ms.", ManagementFactory.getRuntimeMXBean().getUptime());
+      log.log(INFO, "jCuDoS execution took {0} ms.", ManagementFactory.getRuntimeMXBean().getUptime());
       suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
       
     } catch (FileAlreadyExistsException lockException) {
@@ -98,7 +98,7 @@ public class AppCuDoS implements Runnable {
    * Stage A - class lists processing
    * @param root root directory of microservices
    * @param classListGlob relative Glob pattern to find out files to process 
-   * @param exclusionGlobs a set of exlcuding globs
+   * @param exclusionGlobs a set of excluding globs
    * @param outDir output directory path, e.g. {@code _shared/}
    * @throws IOException in case of any IO error
    */
@@ -127,7 +127,7 @@ public class AppCuDoS implements Runnable {
    * Stage B - fat JARs processing
    * @param root root directory of microservices
    * @param fatJarsGlob relative Glob pattern to find out files to process
-   * @param exclusionGlobs a set of exlcuding globs
+   * @param exclusionGlobs a set of excluding globs
    * @param outDir output directory path, e.g. {@code _shared/}
    * @return a list of string paths to {@code lib} directories created next to fat JARs
    */

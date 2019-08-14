@@ -42,7 +42,7 @@ public class ConvertJar implements Runnable {
         Manifest manifest = new Manifest();
         Attributes attributes = manifest.getMainAttributes();
         attributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        attributes.putValue("Built-By", "AppCuDoS");
+        attributes.putValue("Built-By", "jCuDoS");
         try (JarOutputStream targetJarOutStream = new JarOutputStream(targetOutStream, manifest)) {
           try (InputStream sourceInStream = Files.newInputStream(fatJarPath)) {
             try (JarInputStream sourceJarInStream = new JarInputStream(sourceInStream)) {

@@ -1,9 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="AppCuDoS help" type="Application" factoryName="Application" editBeforeRun="true">
-    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.AppCuDoS" />
+  <configuration default="false" name="jCuDos convert (single fat-jar)" type="Application" factoryName="Application" editBeforeRun="true">
+    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.JCudos" />
     <module name="appecudos.main" />
-    <option name="PROGRAM_PARAMETERS" value="help" />
-    <option name="VM_PARAMETERS" value="-ea" />
+    <option name="PROGRAM_PARAMETERS" value="convert --root C:/upc2/microservices restorun/build/libs/restorun.fat.jar" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="tech.toparvion.util.appecudos.subcommand.*" />
