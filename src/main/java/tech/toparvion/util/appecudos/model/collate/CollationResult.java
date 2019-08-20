@@ -1,8 +1,10 @@
-package tech.toparvion.util.appecudos.model;
+package tech.toparvion.util.appecudos.model.collate;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
 
 /**
  * @author Toparvion
@@ -10,11 +12,15 @@ import java.util.Set;
 public class CollationResult {
   private final Set<String> merging;
   private final Set<String> intersection;
-  private final Map<String, List<String>> owns;
+  private final Map<String, List<?>> owns;      // convert to Map<String, List<String>> if necessary
 
-  public CollationResult(Set<String> merging, Set<String> intersection, Map<String, List<String>> owns) {
-    this.merging = merging;
-    this.intersection = intersection;
+  public CollationResult(Set<?> merging, Set<?> intersection, Map<String, List<?>> owns) {
+    this.merging = merging.stream()
+        .map(Object::toString)
+        .collect(toSet());
+    this.intersection = intersection.stream()
+        .map(Object::toString)
+        .collect(toSet());
     this.owns = owns;
   }
 
@@ -26,7 +32,7 @@ public class CollationResult {
     return intersection;
   }
 
-  public Map<String, List<String>> getOwns() {
+  public Map<String, List<?>> getOwns() {
     return owns;
   }
 

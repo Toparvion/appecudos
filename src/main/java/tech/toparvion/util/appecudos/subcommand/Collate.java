@@ -1,6 +1,9 @@
 package tech.toparvion.util.appecudos.subcommand;
 
-import tech.toparvion.util.appecudos.model.CollationResult;
+import tech.toparvion.util.appecudos.Util;
+import tech.toparvion.util.appecudos.model.collate.CollationResult;
+import tech.toparvion.util.appecudos.model.collate.entry.NestedJarEntry;
+import tech.toparvion.util.appecudos.model.collate.entry.PathEntry;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -17,11 +20,11 @@ import static picocli.CommandLine.*;
  */
 @Command(name = "collate",
         mixinStandardHelpOptions = true,
-        description = "Collates given lists irrelative to their elements order")
+        description = "Collates given lists irrespective to their elements order")
 public class Collate implements Callable<CollationResult> {
 
   @Parameters(paramLabel = "LISTS", description = "Paths to lists to be analyzed. Can be concrete paths of glob " +
-          "patterns pointing to either list files or directories")
+          "patterns pointing to either list files or directories (including fat JARs)")
   private List<String> args;
   
   @Option(names = {"-r", "--root"})
@@ -35,13 +38,20 @@ public class Collate implements Callable<CollationResult> {
   
   @Option(names = {"-i", "--intersection-out"})
   private Path intersectionOutPath;
+
+  /**
+   * @apiNote when using it from command line, the option must be set as '--precise-compare' 
+   * (not as '--precise-compare true' i.e. no explicit 'true' or 'false' word required)
+   */
+  @Option(names = {"-p", "--precise-compare"})
+  private boolean preciseFileComparisonMode = false;
   
   private Set<PathMatcher> exclusionMatchers = new HashSet<>();
 
   @Override
   public CollationResult call() {
-    setupExclusionMatchers();
-    Map<String, List<String>> allLines = new HashMap<>();
+    long startTime = setup();
+    Map<String, List<?>> allEntries = new HashMap<>();
     for (String arg : args) {
       try {
         if (arg.contains("*")) {
@@ -55,51 +65,51 @@ public class Collate implements Callable<CollationResult> {
           for (Path matchedPath : matchedPaths) {
             if (Files.isDirectory(matchedPath)) {
               System.out.printf("Processing path '%s' as directory...\n", arg);
-              List<String> dirEntries = getDirFileNames(matchedPath);
-              allLines.put(matchedPath.toString(), dirEntries);
+              List<PathEntry> dirEntries = getDirFileNames(matchedPath);
+              allEntries.put(matchedPath.toString(), dirEntries);
               System.out.printf("%d entries have been put under '%s' dir name\n", dirEntries.size(), matchedPath);
 
             } else {
               if (Files.isReadable(matchedPath)) {
                 String matchedPathString = matchedPath.toString().toLowerCase();
                 if (matchedPathString.endsWith(".jar")) {
-                  processFatJar(allLines, matchedPathString);
+                  processFatJar(allEntries, matchedPathString);
 
                 } else {
                   System.out.printf("Processing path '%s' as plain list file...\n", matchedPath);
                   List<String> lines = Files.readAllLines(matchedPath);
-                  allLines.put(matchedPath.toString(), lines);
+                  allEntries.put(matchedPath.toString(), lines);
                   System.out.printf("%d lines have been put under '%s' matched file name\n", lines.size(), matchedPath);
                 } 
 
               } else {
                 System.err.printf("Path '%s' doesn't point to existing and readable file. Skipped.", matchedPath);
-                allLines.put(matchedPath.toString(), List.of());
+                allEntries.put(matchedPath.toString(), List.of());
               }
             }
           }
 
         } else if (arg.toLowerCase().endsWith(".jar")) {
-          processFatJar(allLines, arg);
+          processFatJar(allEntries, arg);
 
         } else {
           var concretePath = absolutify(Paths.get(arg));
           if (Files.isDirectory(concretePath)) {
             System.out.printf("Processing path '%s' as directory...\n", arg);
-            List<String> dirEntries = getDirFileNames(concretePath);
-            allLines.put(concretePath.toString(), dirEntries);
+            List<PathEntry> dirEntries = getDirFileNames(concretePath);
+            allEntries.put(concretePath.toString(), dirEntries);
             System.out.printf("%d entries have been put under '%s' dir concrete name\n", dirEntries.size(), concretePath);
             
           } else {
             if (Files.isReadable(concretePath)) {
               System.out.printf("Processing path '%s' as plain list file...\n", concretePath);
               List<String> lines = Files.readAllLines(concretePath);
-              allLines.put(arg, lines);
+              allEntries.put(arg, lines);
               System.out.printf("%d lines have been put under '%s' concrete file name\n", lines.size(), concretePath);
               
             } else {
               System.err.printf("Path '%s' doesn't point to existing and readable file. Skipped.", concretePath);
-              allLines.put(concretePath.toString(), List.of());
+              allEntries.put(concretePath.toString(), List.of());
             } 
           } 
         }
@@ -109,11 +119,13 @@ public class Collate implements Callable<CollationResult> {
         e.printStackTrace();
       }
     }
-    System.out.printf("Loaded %d lists\n", allLines.size());
-    if (allLines.isEmpty()) {
+    System.out.printf("Loaded %d lists\n", allEntries.size());
+    if (allEntries.isEmpty()) {
       return null;
     }
-    CollationResult collationResult = collate(allLines);
+    
+    // do the collation itself
+    CollationResult collationResult = collate(allEntries);
 
     // merging output
     if (mergingOutPath != null) {
@@ -140,14 +152,23 @@ public class Collate implements Callable<CollationResult> {
         e.printStackTrace();
       }
     }
+    long execTime = System.currentTimeMillis() - startTime;
+    System.out.printf("Collate task took %d ms.\n", execTime);
     return collationResult;
   }
 
-  private void setupExclusionMatchers() {
+  private long setup() {
+    // first, remember current time to compute overall task execution time
+    long startTime = System.currentTimeMillis();
     if (exclusionMatchers.isEmpty()) {
       exclusionGlobs.forEach(exclusionGlob -> 
               exclusionMatchers.add(FileSystems.getDefault().getPathMatcher("glob:" + exclusionGlob)));
     }
+    // then store selected (or default) comparison mode in global value to make it accessible from anywhere 
+    Util.PRECISE_FILE_COMPARISON_MODE = preciseFileComparisonMode;
+    System.out.printf("File comparison mode: %s\n", preciseFileComparisonMode ? "precise" : "rough");
+    
+    return startTime;
   }
 
   private boolean filterOutExclusions(Path path) {
@@ -157,7 +178,7 @@ public class Collate implements Callable<CollationResult> {
             .isEmpty();
   }
 
-  private void processFatJar(Map<String, List<String>> allLines, String arg) throws IOException {
+  private void processFatJar(Map<String, List<?>> allEntries, String arg) throws IOException {
     System.out.printf("Processing path '%s' as Spring Boot 'fat' JAR...\n", arg);
     var fatJarPath = absolutify(Paths.get(arg));
     try (JarFile jarFile = new JarFile(fatJarPath.toString())) {
@@ -167,12 +188,12 @@ public class Collate implements Callable<CollationResult> {
         return;
       }
       System.out.printf("For JAR '%s' start class detected as: %s\n", fatJarPath, startClass);
-      List<String> jars = jarFile.stream()
+      List<NestedJarEntry> jars = jarFile.stream()
               .filter(this::nestedJarFilter)
-              .map(JarEntry::getName)
-//                    .peek(System.out::println)
+              .map(NestedJarEntry::new)
+              //.peek(System.out::println)
               .collect(toList());
-      allLines.put(fatJarPath.toString(), jars);
+      allEntries.put(fatJarPath.toString(), jars);
       System.out.printf("%d lines have been put under '%s' fat JAR path\n", jars.size(), fatJarPath);
     }
   }
@@ -191,52 +212,54 @@ public class Collate implements Callable<CollationResult> {
     return path;
   }
 
-  private static List<String> getDirFileNames(Path dirPath) throws IOException {
-    List<String> dirEntries = new ArrayList<>();
+  private static List<PathEntry> getDirFileNames(Path dirPath) throws IOException {
+    List<PathEntry> dirEntries = new ArrayList<>();
     try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
       for (Path dirEntry : dirStream) {
-        dirEntries.add(dirEntry.getFileName().toString());
+        dirEntries.add(new PathEntry(dirEntry));
       }
     }
     return dirEntries;
   }
 
-
-  private CollationResult collate(Map<String, List<String>> allLines) {
-    // intersection
-    Iterator<List<String>> iterator = allLines.values().iterator();
-    Set<String> intersection = new HashSet<>(iterator.next());
-    while (iterator.hasNext()) {
-      List<String> list = iterator.next();
-      intersection.retainAll(list);
+  private CollationResult collate(Map<String, List<?>> allEntries) {
+    // intersection (entries that present in every list)
+    Iterator<List<?>> topLevelIterator = allEntries.values().iterator();
+    Set<?> intersection = new HashSet<>(topLevelIterator.next());
+    while (topLevelIterator.hasNext()) {
+      List<?> currentEntries = topLevelIterator.next();
+      intersection.retainAll(currentEntries);   // this call heavily relies on equals method of the entries
     }
-    // merging
-    Set<String> merging = new HashSet<>();
-    allLines.values().forEach(merging::addAll);
-    // owns
-    Map<String, List<String>> owns = new HashMap<>(allLines.size());
-    allLines.forEach((name, lines) -> owns.put(name, new ArrayList<>(lines)));
+    // merging (a combination of all entries from all lists without duplicates)
+    Set<Object> merging = new HashSet<>();
+    for (List<?> objects : allEntries.values()) {
+      merging.addAll(objects);                  // this call also relies on equals method of the entries
+    }
+    // owns (entries which are specific to each list of entries)
+    Map<String, List<?>> owns = new HashMap<>(allEntries.size());
+    allEntries.forEach((name, lines) -> owns.put(name, new ArrayList<>(lines)));
     owns.values().forEach(list -> list.removeAll(intersection));
     
     // statistics
-    var commonStats = allLines.values()
+    LongSummaryStatistics interStats = allEntries.values()
             .stream()
             .mapToDouble(lines -> (double) intersection.size() / (double) lines.size())
             .mapToLong(value -> Math.round(value * 100.0))
             .summaryStatistics();
-    var sizeStats = allLines.values().stream()
+    IntSummaryStatistics sizeStats = allEntries.values().stream()
             .mapToInt(List::size)
             .summaryStatistics();
 
     // output
-    System.out.println("=======================================");
+    System.out.println("====================================================");
     System.out.printf("List sizes: min=%d, avg=%.0f, max=%d, cnt=%d\n", sizeStats.getMin(), sizeStats.getAverage(),
             sizeStats.getMax(), sizeStats.getCount());
-    System.out.printf("Intersection size: %d\n", intersection.size());
     System.out.printf("Merged list size:  %d\n", merging.size());
-    System.out.printf("Common part stats: min=%d%%, avg=%.0f%%, max=%d%%\n", commonStats.getMin(), commonStats.getAverage(), commonStats.getMax());
-    System.out.println("=======================================");
-//    for (Map.Entry<String, List<String>> listEntry : allLines.entrySet()) {
+    System.out.printf("Intersection size: %d\n", intersection.size());
+    System.out.printf("Intersection stats: min=%d%%, avg=%.0f%%, max=%d%%\n", interStats.getMin(),
+        interStats.getAverage(), interStats.getMax());
+    System.out.println("====================================================");
+//    for (Map.Entry<String, List<String>> listEntry : allEntries.entrySet()) {
 //      int entrySize = listEntry.getValue().size();
 //      int ownElements = entrySize - intersection.size();
 //      double ownElementsShare = ((double) ownElements / (double) entrySize) * 100.0;
