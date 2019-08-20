@@ -1,6 +1,6 @@
-package tech.toparvion.util.appecudos.model.collate.entry;
+package tech.toparvion.util.jcudos.model.collate.entry;
 
-import tech.toparvion.util.appecudos.Util;
+import tech.toparvion.util.jcudos.Util;
 
 import java.io.IOException;
 import java.nio.file.Path;

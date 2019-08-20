@@ -1,12 +1,12 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="jCuDoS help" type="Application" factoryName="Application" editBeforeRun="true">
-    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.appecudos.JCudos" />
-    <module name="appecudos.main" />
+    <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.jcudos.JCudos" />
+    <module name="jcudos.main" />
     <option name="PROGRAM_PARAMETERS" value="--help" />
     <option name="VM_PARAMETERS" value="-ea" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="tech.toparvion.util.appecudos.subcommand.*" />
+        <option name="PATTERN" value="tech.toparvion.util.jcudos.subcommand.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

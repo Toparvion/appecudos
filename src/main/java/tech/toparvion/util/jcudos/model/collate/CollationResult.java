@@ -1,4 +1,4 @@
-package tech.toparvion.util.appecudos.model.collate;
+package tech.toparvion.util.jcudos.model.collate;
 
 import java.util.List;
 import java.util.Map;

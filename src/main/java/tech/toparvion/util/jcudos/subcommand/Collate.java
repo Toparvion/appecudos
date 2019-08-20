@@ -1,9 +1,9 @@
-package tech.toparvion.util.appecudos.subcommand;
+package tech.toparvion.util.jcudos.subcommand;
 
-import tech.toparvion.util.appecudos.Util;
-import tech.toparvion.util.appecudos.model.collate.CollationResult;
-import tech.toparvion.util.appecudos.model.collate.entry.NestedJarEntry;
-import tech.toparvion.util.appecudos.model.collate.entry.PathEntry;
+import tech.toparvion.util.jcudos.Util;
+import tech.toparvion.util.jcudos.model.collate.CollationResult;
+import tech.toparvion.util.jcudos.model.collate.entry.NestedJarEntry;
+import tech.toparvion.util.jcudos.model.collate.entry.PathEntry;
 
 import java.io.IOException;
 import java.nio.file.*;

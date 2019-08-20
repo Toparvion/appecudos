@@ -1,8 +1,8 @@
-package tech.toparvion.util.appecudos;
+package tech.toparvion.util.jcudos;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
-import tech.toparvion.util.appecudos.subcommand.*;
+import tech.toparvion.util.jcudos.subcommand.*;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -15,8 +15,8 @@ import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static picocli.CommandLine.Command;
-import static tech.toparvion.util.appecudos.Constants.*;
-import static tech.toparvion.util.appecudos.Util.suppress;
+import static tech.toparvion.util.jcudos.Constants.*;
+import static tech.toparvion.util.jcudos.Util.suppress;
 
 /**
  * @author Toparvion

@@ -1,4 +1,4 @@
-package tech.toparvion.util.appecudos;
+package tech.toparvion.util.jcudos;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

@@ -1,4 +1,4 @@
-package tech.toparvion.util.appecudos;
+package tech.toparvion.util.jcudos;
 
 import java.io.File;
 import java.io.IOException;

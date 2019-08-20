@@ -1,7 +1,7 @@
-package tech.toparvion.util.appecudos.subcommand;
+package tech.toparvion.util.jcudos.subcommand;
 
 import picocli.CommandLine.Option;
-import tech.toparvion.util.appecudos.Util;
+import tech.toparvion.util.jcudos.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +18,7 @@ import java.util.zip.ZipInputStream;
 
 import static java.util.stream.Collectors.toList;
 import static picocli.CommandLine.Command;
-import static tech.toparvion.util.appecudos.Constants.*;
+import static tech.toparvion.util.jcudos.Constants.*;
 
 /**
  * Stage B

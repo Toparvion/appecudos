@@ -1,8 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="jCuDos collate DIRs" type="Application" factoryName="Application" editBeforeRun="true">
+  <configuration default="false" name="jCuDoS version" type="Application" factoryName="Application" editBeforeRun="true">
     <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.jcudos.JCudos" />
     <module name="jcudos.main" />
-    <option name="PROGRAM_PARAMETERS" value="collate --root C:/upc2/microservices --intersection-out _common/jars.list */build/libs/deps" />
+    <option name="PROGRAM_PARAMETERS" value="--version" />
+    <option name="VM_PARAMETERS" value="-ea" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="tech.toparvion.util.jcudos.subcommand.*" />

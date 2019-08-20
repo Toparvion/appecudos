@@ -1,4 +1,4 @@
-package tech.toparvion.util.appecudos.subcommand;
+package tech.toparvion.util.jcudos.subcommand;
 
 import java.io.IOException;
 import java.io.InputStream;

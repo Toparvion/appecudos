@@ -1,3 +1,3 @@
 Manifest-Version: 1.0
-Main-Class: tech.toparvion.util.appecudos.JCudos
+Main-Class: tech.toparvion.util.jcudos.JCudos
 

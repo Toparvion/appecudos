@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/appecudos.iml" filepath="$PROJECT_DIR$/.idea/modules/appecudos.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/appecudos.main.iml" filepath="$PROJECT_DIR$/.idea/modules/appecudos.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/appecudos.test.iml" filepath="$PROJECT_DIR$/.idea/modules/appecudos.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/jcudos.iml" filepath="$PROJECT_DIR$/.idea/modules/jcudos.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/jcudos.main.iml" filepath="$PROJECT_DIR$/.idea/modules/jcudos.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/jcudos.test.iml" filepath="$PROJECT_DIR$/.idea/modules/jcudos.test.iml" />
     </modules>
   </component>
 </project>

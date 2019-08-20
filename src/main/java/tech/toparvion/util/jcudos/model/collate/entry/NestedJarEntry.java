@@ -1,4 +1,4 @@
-package tech.toparvion.util.appecudos.model.collate.entry;
+package tech.toparvion.util.jcudos.model.collate.entry;
 
 import java.util.jar.JarEntry;
 
