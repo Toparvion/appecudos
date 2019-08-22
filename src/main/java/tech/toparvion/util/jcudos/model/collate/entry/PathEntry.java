@@ -1,5 +1,6 @@
 package tech.toparvion.util.jcudos.model.collate.entry;
 
+import tech.toparvion.util.jcudos.Constants;
 import tech.toparvion.util.jcudos.Util;
 
 import java.io.IOException;
@@ -17,7 +18,7 @@ public class PathEntry {
   public PathEntry(Path path) {
     assert path != null;
     this.path = path;
-    preciseFileComparisonMode = Util.PRECISE_FILE_COMPARISON_MODE;
+    preciseFileComparisonMode = Constants.PRECISE_FILE_COMPARISON_MODE;
   }
 
   @Override

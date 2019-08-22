@@ -2,6 +2,7 @@ package tech.toparvion.util.jcudos;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import tech.toparvion.util.jcudos.infra.JCudosVersionProvider;
 import tech.toparvion.util.jcudos.subcommand.*;
 
 import java.io.IOException;
@@ -21,8 +22,9 @@ import static tech.toparvion.util.jcudos.Util.suppress;
 /**
  * @author Toparvion
  */
-@Command(name = "jcudos", 
-        mixinStandardHelpOptions = true, version = "jCuDoS v1.0",
+@Command(name = MY_NAME, 
+        mixinStandardHelpOptions = true, 
+        versionProvider = JCudosVersionProvider.class,
         subcommands = {
                 ListAllClasses.class,
                 ListMergedClasses.class,
@@ -52,7 +54,7 @@ public class JCudos implements Runnable {
   @Option(names = {"--exclusion", "-e"})
   private Set<String> exclusionGlobs = new HashSet<>();  
   
-  @Option(names = {"--search-dir", "-r"})
+  @Option(names = {"--work-dir", "-w"})
   private Path root = Paths.get(System.getProperty("user.dir"));
 
   public static void main(String[] args) {
@@ -62,8 +64,8 @@ public class JCudos implements Runnable {
   @Override
   public void run() {
     fixPaths();
-    log.log(INFO, "jCuDoS has been called: classListGlob={0}, fatJarsGlob={1}, outDirPath={2}, " +
-                    "exclusions={3}, root={4}", classListGlob, fatJarsGlob, outDir, exclusionGlobs, root);
+    log.log(INFO, "{0} has been called: classListGlob={1}, fatJarsGlob={2}, outDirPath={3}, " +
+                    "exclusions={4}, root={5}", MY_PRETTY_NAME, classListGlob, fatJarsGlob, outDir, exclusionGlobs, root);
     try {
       // the following will throw FileAlreadyExistsException in case when another process is already acting 
       Files.createFile(outDir.resolve(LOCK_FILE_NAME));
@@ -77,7 +79,7 @@ public class JCudos implements Runnable {
       // Stage D - Prepare application for running with AppCDS
       preparePrivateArgFiles(libDirs, commonLibPaths);
       
-      log.log(INFO, "jCuDoS execution took {0} ms.", ManagementFactory.getRuntimeMXBean().getUptime());
+      log.log(INFO, "{0} execution took {1} ms.", MY_PRETTY_NAME, ManagementFactory.getRuntimeMXBean().getUptime());
       suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
       
     } catch (FileAlreadyExistsException lockException) {
@@ -86,7 +88,7 @@ public class JCudos implements Runnable {
       // do not remove lockFile here as it may be requested by other CuDoS processes
       System.exit(1);     // to reveal the fact for calling side
       
-    } catch (Exception e) {
+    } catch (Throwable e) {
       e.printStackTrace();
       suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
       System.exit(1);

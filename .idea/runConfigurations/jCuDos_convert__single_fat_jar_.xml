@@ -2,7 +2,7 @@
   <configuration default="false" name="jCuDos convert (single fat-jar)" type="Application" factoryName="Application" editBeforeRun="true">
     <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.jcudos.JCudos" />
     <module name="jcudos.main" />
-    <option name="PROGRAM_PARAMETERS" value="convert --root C:/upc2/microservices restorun/build/libs/restorun.fat.jar" />
+    <option name="PROGRAM_PARAMETERS" value="convert -i C:\\lang\\analog\\build\\libs\\analog.jar -o work\\convert" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="tech.toparvion.util.jcudos.subcommand.*" />

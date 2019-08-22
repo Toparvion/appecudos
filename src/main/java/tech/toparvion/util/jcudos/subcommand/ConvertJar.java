@@ -1,5 +1,8 @@
 package tech.toparvion.util.jcudos.subcommand;
 
+import tech.toparvion.util.jcudos.Constants;
+import tech.toparvion.util.jcudos.infra.JCudosVersionProvider;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -8,6 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.jar.*;
 
+import static java.lang.System.Logger.Level.INFO;
+import static java.lang.System.Logger.Level.TRACE;
 import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Option;
 
@@ -16,13 +21,16 @@ import static picocli.CommandLine.Option;
  */
 @Command(name = "convert",
         mixinStandardHelpOptions = true,
-        description = "Converts given fat JAR to slim one")
+        versionProvider = JCudosVersionProvider.class,
+        description = "Converts given fat JAR into slim one.%nResulting file has the same name and '.slim.jar' extension.")
 public class ConvertJar implements Runnable {
+  private static final System.Logger log = System.getLogger(ConvertJar.class.toString());
 
-  @Option(names = {"--input-jar", "-i"}, required = true)
+  @Option(names = {"--input-jar", "-i"}, required = true, description = "Path to input fat JAR file")
   private Path fatJarPath;
 
-  @Option(names = {"--output-dir", "-o"})
+  @Option(names = {"--output-dir", "-o"}, description = "Optional path to output directory for resulting slim JAR " +
+      "file. Defaults to parent directory of input JAR file.")
   private Path slimJarDir;
 
   /**
@@ -31,18 +39,18 @@ public class ConvertJar implements Runnable {
   @Override
   public void run() {
     try {
-      // compose path to resulting (slim) JAR
+      // compose path to resulting (slim) JAR (that should be in the form of "<source-jar-name>.slim.jar")
       String targetJarName = fatJarPath.getFileName().toString().replaceAll("(?i)\\.(jar)$", ".slim.$1");
       if (slimJarDir == null) {
         slimJarDir = fatJarPath.getParent();
       }
       Path targetJarPath = slimJarDir.resolve(targetJarName);
-      // open source fat JAR for reading
+      // open the source fat JAR for reading
       try (OutputStream targetOutStream = Files.newOutputStream(targetJarPath)) {
         Manifest manifest = new Manifest();
         Attributes attributes = manifest.getMainAttributes();
         attributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        attributes.putValue("Built-By", "jCuDoS");
+        attributes.putValue("Built-By", Constants.MY_PRETTY_NAME);
         try (JarOutputStream targetJarOutStream = new JarOutputStream(targetOutStream, manifest)) {
           try (InputStream sourceInStream = Files.newInputStream(fatJarPath)) {
             try (JarInputStream sourceJarInStream = new JarInputStream(sourceInStream)) {
@@ -54,7 +62,7 @@ public class ConvertJar implements Runnable {
                 if (!isPathAcceptable) {
                   continue;
                 }
-                // System.out.printf("Processing archive entry: %s\n", sourceEntryName);
+                log.log(TRACE, "Processing archive entry: {0}", sourceEntryName);
                 Path sourceEntryPath = Paths.get(sourceEntryName);
                 if (sourceEntryPath.getNameCount() <= 2) {
                   continue;
@@ -75,7 +83,7 @@ public class ConvertJar implements Runnable {
           }
         }
       }
-      System.out.printf("Converted fat jar '%s' to slim one '%s'\n", fatJarPath, targetJarPath);
+      log.log(INFO, "Converted fat jar ''{0}'' into slim one ''{1}''", fatJarPath, targetJarPath);
       
     } catch (IOException e) {
       throw new RuntimeException(e);

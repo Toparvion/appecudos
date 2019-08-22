@@ -22,11 +22,6 @@ public final class Util {
    */
   private static final int BUFFER_SIZE = 8192;
 
-  /**
-   * Global mode flag for choosing between different approaches to comparing files with each other
-   */
-  public static boolean PRECISE_FILE_COMPARISON_MODE; 
-
   private Util() { }
 
   public static Path prepareDir(Path desiredPath) throws IOException {
@@ -205,5 +200,12 @@ public final class Util {
   @FunctionalInterface
   public interface ExplosiveReturningAction<T> {
     T act() throws IOException;
+  }
+
+  public static String nvls(String val, String def) {
+    if (val == null) {
+      return def;
+    }
+    return val;
   }
 }

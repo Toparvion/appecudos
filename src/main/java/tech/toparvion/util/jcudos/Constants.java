@@ -13,6 +13,9 @@ import static java.util.stream.Collectors.joining;
 @SuppressWarnings("WeakerAccess")     // access level is left maximum for simplicity 
 public final class Constants {
   private Constants() { }
+  
+  public static final String MY_NAME = "jcudos";
+  public static final String MY_PRETTY_NAME = "jCuDoS";
 
   public static final String COMMON_ARGFILE_INTRO = 
           "-classpath\n" +
@@ -39,4 +42,9 @@ public final class Constants {
 
   public static final String LIB_DIR_NAME = "lib";
   public static final String LOCK_FILE_NAME = ".lock";
+
+  /**
+   * Global mode flag for choosing between different approaches to comparing files with each other
+   */
+  public static boolean PRECISE_FILE_COMPARISON_MODE;
 }

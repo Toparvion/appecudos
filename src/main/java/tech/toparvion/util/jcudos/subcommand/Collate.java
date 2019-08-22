@@ -1,6 +1,7 @@
 package tech.toparvion.util.jcudos.subcommand;
 
-import tech.toparvion.util.jcudos.Util;
+import tech.toparvion.util.jcudos.Constants;
+import tech.toparvion.util.jcudos.infra.JCudosVersionProvider;
 import tech.toparvion.util.jcudos.model.collate.CollationResult;
 import tech.toparvion.util.jcudos.model.collate.entry.NestedJarEntry;
 import tech.toparvion.util.jcudos.model.collate.entry.PathEntry;
@@ -12,6 +13,7 @@ import java.util.concurrent.Callable;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import static java.lang.System.Logger.Level.*;
 import static java.util.stream.Collectors.toList;
 import static picocli.CommandLine.*;
 
@@ -20,23 +22,25 @@ import static picocli.CommandLine.*;
  */
 @Command(name = "collate",
         mixinStandardHelpOptions = true,
+        versionProvider = JCudosVersionProvider.class,
         description = "Collates given lists irrespective to their elements order")
 public class Collate implements Callable<CollationResult> {
+  private static final System.Logger log = System.getLogger(Collate.class.toString());
 
   @Parameters(paramLabel = "LISTS", description = "Paths to lists to be analyzed. Can be concrete paths of glob " +
           "patterns pointing to either list files or directories (including fat JARs)")
   private List<String> args;
   
-  @Option(names = {"-r", "--root"})
+  @Option(names = {"--work-dir", "-w"})
   private Path root = Paths.get(System.getProperty("user.dir"));
   
   @Option(names = {"--exclusion", "-e"})
   private Set<String> exclusionGlobs = new HashSet<>();
   
-  @Option(names = {"-m", "--merging-out"})
+  @Option(names = {"--merging-out", "-m"})
   private Path mergingOutPath;
   
-  @Option(names = {"-i", "--intersection-out"})
+  @Option(names = {"--intersection-out", "-i"})
   private Path intersectionOutPath;
 
   /**
@@ -55,7 +59,7 @@ public class Collate implements Callable<CollationResult> {
     for (String arg : args) {
       try {
         if (arg.contains("*")) {
-          System.out.printf("Path '%s' contains wildcard(s), will be processed as Glob pattern...\n", arg);
+          log.log(DEBUG, "Path ''{0}'' contains wildcard(s), will be processed as Glob pattern...", arg);
           PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
           List<Path> matchedPaths = Files.walk(root)
 //                  .filter(path -> matcher.matches(root.relativize(path)))
@@ -64,10 +68,10 @@ public class Collate implements Callable<CollationResult> {
                   .collect(toList());
           for (Path matchedPath : matchedPaths) {
             if (Files.isDirectory(matchedPath)) {
-              System.out.printf("Processing path '%s' as directory...\n", arg);
+              log.log(DEBUG, "Processing path ''{0}'' as directory...", arg);
               List<PathEntry> dirEntries = getDirFileNames(matchedPath);
               allEntries.put(matchedPath.toString(), dirEntries);
-              System.out.printf("%d entries have been put under '%s' dir name\n", dirEntries.size(), matchedPath);
+              log.log(INFO, "{0} entries have been put under ''{1}'' dir name", dirEntries.size(), matchedPath);
 
             } else {
               if (Files.isReadable(matchedPath)) {
@@ -76,14 +80,14 @@ public class Collate implements Callable<CollationResult> {
                   processFatJar(allEntries, matchedPathString);
 
                 } else {
-                  System.out.printf("Processing path '%s' as plain list file...\n", matchedPath);
+                  log.log(DEBUG, "Processing path ''{0}'' as plain list file...", matchedPath);
                   List<String> lines = Files.readAllLines(matchedPath);
                   allEntries.put(matchedPath.toString(), lines);
-                  System.out.printf("%d lines have been put under '%s' matched file name\n", lines.size(), matchedPath);
+                  log.log(INFO, "{0} lines have been put under ''{1}'' matched file name", lines.size(), matchedPath);
                 } 
 
               } else {
-                System.err.printf("Path '%s' doesn't point to existing and readable file. Skipped.", matchedPath);
+                log.log(WARNING, "Path ''{0}'' doesn't point to existing and readable file. Skipped.", matchedPath);
                 allEntries.put(matchedPath.toString(), List.of());
               }
             }
@@ -95,31 +99,31 @@ public class Collate implements Callable<CollationResult> {
         } else {
           var concretePath = absolutify(Paths.get(arg));
           if (Files.isDirectory(concretePath)) {
-            System.out.printf("Processing path '%s' as directory...\n", arg);
+            log.log(DEBUG, "Processing path ''{0}'' as directory...", arg);
             List<PathEntry> dirEntries = getDirFileNames(concretePath);
             allEntries.put(concretePath.toString(), dirEntries);
-            System.out.printf("%d entries have been put under '%s' dir concrete name\n", dirEntries.size(), concretePath);
+            log.log(INFO, "{0} entries have been put under ''{1}'' dir concrete name", dirEntries.size(), concretePath);
             
           } else {
             if (Files.isReadable(concretePath)) {
-              System.out.printf("Processing path '%s' as plain list file...\n", concretePath);
+              log.log(DEBUG, "Processing path ''{0}'' as plain list file...", concretePath);
               List<String> lines = Files.readAllLines(concretePath);
               allEntries.put(arg, lines);
-              System.out.printf("%d lines have been put under '%s' concrete file name\n", lines.size(), concretePath);
+              log.log(INFO, "{0} lines have been put under ''{1}'' concrete file name", lines.size(), concretePath);
               
             } else {
-              System.err.printf("Path '%s' doesn't point to existing and readable file. Skipped.", concretePath);
+              log.log(WARNING,"Path ''{0}'' doesn't point to existing and readable file. Skipped.", concretePath);
               allEntries.put(concretePath.toString(), List.of());
             } 
           } 
         }
         
       } catch (IOException e) {
-        System.err.printf("Failed to process argument '%s'. Skipped.\n", arg);
+        log.log(ERROR, "Failed to process argument ''{0}''. Skipped.", arg);
         e.printStackTrace();
       }
     }
-    System.out.printf("Loaded %d lists\n", allEntries.size());
+    log.log(INFO, "Loaded {0} lists", allEntries.size());
     if (allEntries.isEmpty()) {
       return null;
     }
@@ -133,7 +137,7 @@ public class Collate implements Callable<CollationResult> {
       try {
         Set<String> merging = collationResult.getMerging();
         Files.write(mergingOutPath, merging);
-        System.out.printf("Merging result (%d items) has been written to %s\n", merging.size(), mergingOutPath);
+        log.log(INFO, "Merging result ({0} items) has been written to ''{1}''", merging.size(), mergingOutPath);
         
       } catch (IOException e) {
         e.printStackTrace();
@@ -146,14 +150,14 @@ public class Collate implements Callable<CollationResult> {
       try {
         Set<String> intersection = collationResult.getIntersection();
         Files.write(intersectionOutPath, intersection);
-        System.out.printf("Intersection result (%d items) has been written to %s\n", intersection.size(), intersectionOutPath);
+        log.log(INFO, "Intersection result ({0} items) has been written to ''{1}''", intersection.size(), intersectionOutPath);
         
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
     long execTime = System.currentTimeMillis() - startTime;
-    System.out.printf("Collate task took %d ms.\n", execTime);
+    log.log(INFO, "Task execution took {0} ms.", execTime);
     return collationResult;
   }
 
@@ -165,8 +169,8 @@ public class Collate implements Callable<CollationResult> {
               exclusionMatchers.add(FileSystems.getDefault().getPathMatcher("glob:" + exclusionGlob)));
     }
     // then store selected (or default) comparison mode in global value to make it accessible from anywhere 
-    Util.PRECISE_FILE_COMPARISON_MODE = preciseFileComparisonMode;
-    System.out.printf("File comparison mode: %s\n", preciseFileComparisonMode ? "precise" : "rough");
+    Constants.PRECISE_FILE_COMPARISON_MODE = preciseFileComparisonMode;
+    log.log(INFO, "File comparison mode: {0}", preciseFileComparisonMode ? "precise" : "rough");
     
     return startTime;
   }
@@ -179,22 +183,22 @@ public class Collate implements Callable<CollationResult> {
   }
 
   private void processFatJar(Map<String, List<?>> allEntries, String arg) throws IOException {
-    System.out.printf("Processing path '%s' as Spring Boot 'fat' JAR...\n", arg);
+    log.log(INFO, "Processing path ''{0}'' as Spring Boot ''fat'' JAR...", arg);
     var fatJarPath = absolutify(Paths.get(arg));
     try (JarFile jarFile = new JarFile(fatJarPath.toString())) {
       String startClass = jarFile.getManifest().getMainAttributes().getValue("Start-Class");
       if (startClass == null) {
-        System.err.printf("File '%s' is not Spring Boot 'fat' JAR or is malformed.\n", arg);
+        log.log(WARNING, "File ''{0}'' is not Spring Boot ''fat'' JAR or is malformed.", arg);
         return;
       }
-      System.out.printf("For JAR '%s' start class detected as: %s\n", fatJarPath, startClass);
+      log.log(DEBUG, "For JAR ''{0}'' start class detected as: {1}", fatJarPath, startClass);
       List<NestedJarEntry> jars = jarFile.stream()
               .filter(this::nestedJarFilter)
               .map(NestedJarEntry::new)
               //.peek(System.out::println)
               .collect(toList());
       allEntries.put(fatJarPath.toString(), jars);
-      System.out.printf("%d lines have been put under '%s' fat JAR path\n", jars.size(), fatJarPath);
+      log.log(INFO, "{0} lines have been put under ''{1}'' fat JAR path", jars.size(), fatJarPath);
     }
   }
 
@@ -251,14 +255,16 @@ public class Collate implements Callable<CollationResult> {
             .summaryStatistics();
 
     // output
-    System.out.println("====================================================");
-    System.out.printf("List sizes: min=%d, avg=%.0f, max=%d, cnt=%d\n", sizeStats.getMin(), sizeStats.getAverage(),
-            sizeStats.getMax(), sizeStats.getCount());
-    System.out.printf("Merged list size:  %d\n", merging.size());
-    System.out.printf("Intersection size: %d\n", intersection.size());
-    System.out.printf("Intersection stats: min=%d%%, avg=%.0f%%, max=%d%%\n", interStats.getMin(),
-        interStats.getAverage(), interStats.getMax());
-    System.out.println("====================================================");
+    String logMessage = 
+        "\n=================================================\n" +
+        String.format("List sizes: min=%d, avg=%.0f, max=%d, cnt=%d\n",
+            sizeStats.getMin(), sizeStats.getAverage(), sizeStats.getMax(), sizeStats.getCount()) +
+        String.format("Merged list size:  %d\n", merging.size()) +
+        String.format("Intersection size: %d\n", intersection.size()) +
+        String.format("Intersection stats: min=%d%%, avg=%.0f%%, max=%d%%\n",
+            interStats.getMin(), interStats.getAverage(), interStats.getMax()) +
+        "=================================================";
+    log.log(INFO, logMessage);
 //    for (Map.Entry<String, List<String>> listEntry : allEntries.entrySet()) {
 //      int entrySize = listEntry.getValue().size();
 //      int ownElements = entrySize - intersection.size();
