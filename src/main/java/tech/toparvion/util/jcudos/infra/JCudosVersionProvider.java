@@ -2,7 +2,7 @@ package tech.toparvion.util.jcudos.infra;
 
 import picocli.CommandLine;
 
-import static tech.toparvion.util.jcudos.Util.nvls;
+import static tech.toparvion.util.jcudos.util.GeneralUtils.nvls;
 
 /**
  * @author Toparvion

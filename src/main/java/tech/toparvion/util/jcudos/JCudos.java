@@ -3,21 +3,25 @@ package tech.toparvion.util.jcudos;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import tech.toparvion.util.jcudos.infra.JCudosVersionProvider;
+import tech.toparvion.util.jcudos.model.exception.JCudosException;
 import tech.toparvion.util.jcudos.subcommand.*;
+import tech.toparvion.util.jcudos.util.PathUtils;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.file.*;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.System.Logger.Level.*;
-import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static picocli.CommandLine.Command;
 import static tech.toparvion.util.jcudos.Constants.*;
-import static tech.toparvion.util.jcudos.Util.suppress;
+import static tech.toparvion.util.jcudos.util.GeneralUtils.suppress;
 
 /**
  * @author Toparvion
@@ -48,7 +52,7 @@ public class JCudos implements Runnable {
   @Option(names = {"--fat-jars", "-f"})
   private String fatJarsGlob;
   
-  @Option(names = {"--out-dir", "-o"})
+  @Option(names = {"--out-dir", "-o"}, defaultValue = "_appcds/")
   private Path outDir;
   
   @Option(names = {"--exclusion", "-e"})
@@ -57,19 +61,20 @@ public class JCudos implements Runnable {
   @Option(names = {"--work-dir", "-w"})
   private Path root = Paths.get(System.getProperty("user.dir"));
 
+  //<editor-fold desc="Entry point">
   public static void main(String[] args) {
     CommandLine.run(new JCudos(), args);
   }
 
   @Override
   public void run() {
-    fixPaths();
     log.log(INFO, "{0} has been called: classListGlob={1}, fatJarsGlob={2}, outDirPath={3}, " +
                     "exclusions={4}, root={5}", MY_PRETTY_NAME, classListGlob, fatJarsGlob, outDir, exclusionGlobs, root);
     try {
-      // the following will throw FileAlreadyExistsException in case when another process is already acting 
-      Files.createFile(outDir.resolve(LOCK_FILE_NAME));
-      
+      validateRootPath(root);    // throws an exception in case of validation fail
+      // the following may throw FileAlreadyExistsException in case another process is already acting 
+      outDir = occupyOutDir(root, outDir);
+
       // Stage A - Process class lists
       processClassLists(root, classListGlob, exclusionGlobs, outDir);
       // Stage B - Process every found 'fat' JAR
@@ -83,19 +88,26 @@ public class JCudos implements Runnable {
       suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
       
     } catch (FileAlreadyExistsException lockException) {
-      log.log(WARNING, "Directory ''{0}'' is already occupied by another AppCDS preparing process." +
-              "Please re-launch this process again a few minutes later.", outDir);
-      // do not remove lockFile here as it may be requested by other CuDoS processes
-      System.exit(1);     // to reveal the fact for calling side
+      log.log(WARNING, "Directory ''{0}'' is already occupied by another {1} process. " +
+              "Please re-launch this process again a few minutes later, or manually remove the lock file, " +
+              "or specify other output directory with --out-dir option.", outDir, MY_PRETTY_NAME);
+      // do not remove lockFile here as it may be requested by other jCuDoS processes
+      System.exit(ALREADY_IN_PROGRESS_EXIT_CODE);     // to reveal the fact for calling side
+
+    } catch (JCudosException jcudosException) {
+      // don't print the stack trace as it is useless for this kind of exceptions
+      suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
+      System.exit(APPCDS_ERROR_EXIT_CODE);
       
     } catch (Throwable e) {
       e.printStackTrace();
       suppress(() -> Files.deleteIfExists(outDir.resolve(LOCK_FILE_NAME)));
-      System.exit(1);
-      
+      System.exit(INTERNAL_ERROR_EXIT_CODE);
     } 
   }
+  //</editor-fold>
 
+  //<editor-fold desc="Stage A">
   /**
    * Stage A - class lists processing
    * @param root root directory of microservices
@@ -113,7 +125,7 @@ public class JCudos implements Runnable {
     var result = collateCommand.call();
     if (result == null) {
       log.log(ERROR, "No class lists found by Glob pattern ''{0}''. Exiting.", classListGlob);
-      System.exit(1);
+      throw new JCudosException();
     }
     
     // A.2 - save the common part as separate list in output directory
@@ -124,7 +136,9 @@ public class JCudos implements Runnable {
     
     log.log(INFO, "{0} class names saved into ''{1}''", intersection.size(), commonClassListPath);
   }
+  //</editor-fold>
 
+  //<editor-fold desc="Stage B">
   /**
    * Stage B - fat JARs processing
    * @param root root directory of microservices
@@ -143,13 +157,15 @@ public class JCudos implements Runnable {
     List<String> libOutDirPaths = processCommand.call();
     if (libOutDirPaths.isEmpty()) {
       log.log(ERROR, "No fat JARs were processed by Glob ''{0}'' in directory ''{1}''.", fatJarsGlob, root);
-      System.exit(1);
+      throw new JCudosException();
     }
     
     log.log(INFO, "Processed {0} fat JARs.", libOutDirPaths.size());
     return libOutDirPaths;
   }
+  //</editor-fold>
 
+  //<editor-fold desc="Stage C">
   /**
    * Stage C - common archive (JSA) creation
    * @param libDirs list of paths to extracted libs
@@ -183,7 +199,12 @@ public class JCudos implements Runnable {
     var collationResult = collateCommand.call();
     Set<String> intersection = collationResult.getIntersection();
     log.log(INFO, "There are {0} common libs among all found applications.", intersection.size());
-    return intersection;
+    // leave file names only as all the rest is the same and is not interesting for further processing
+    return intersection.stream()
+            .map(Paths::get)
+            .map(Path::getFileName)
+            .map(Path::toString)
+            .collect(toSet());
   }
 
   /**
@@ -191,11 +212,11 @@ public class JCudos implements Runnable {
    */
   private List<Path> copySharedLibs(List<String> libDirs, Path outDirPath, Set<String> intersection) throws IOException {
     Path sourceLibDir = Paths.get(libDirs.get(0));  // as common part is the same in all dirs, we can take the first one
-    Path targetLibDir = Util.prepareDir(outDirPath.resolve(SHARED_ROOT).resolve(LIB_DIR_NAME));
+    Path targetLibDir = PathUtils.prepareDir(outDirPath.resolve(SHARED_ROOT).resolve(LIB_DIR_NAME));
 
     List<Path> commonLibPaths = Files.walk(sourceLibDir)
             .filter(sourceFile -> intersection.contains(sourceFile.getFileName().toString()))
-            .map(sourceFile -> copyFile(sourceFile, targetLibDir))
+            .map(sourceFile -> PathUtils.copyFile(sourceFile, targetLibDir))
             .filter(Objects::nonNull)
             .collect(toList());
     if (commonLibPaths.size() != intersection.size()) {
@@ -225,7 +246,7 @@ public class JCudos implements Runnable {
    * C.5 - execute java -Xshare:dump with all the accumulated data
    */
   private void executeJavaXShareDump(Path outDirPath) throws IOException, InterruptedException {
-    Util.prepareDir(outDirPath.resolve(SHARED_ARCHIVE_PATH.getParent()));
+    PathUtils.prepareDir(outDirPath.resolve(SHARED_ARCHIVE_PATH.getParent()));
     var javaExecutable = System.getProperty("os.name").toLowerCase().startsWith("windows")
             ? "java.exe"
             : "java";
@@ -253,11 +274,14 @@ public class JCudos implements Runnable {
     if (javaExitCode == 0) {
       log.log(INFO, "Shared archive has been created successfully in {0} ms.", (stopTime-startTime));
     } else {
-      log.log(ERROR, "Failed to create shared archive (see log). Java process exited with code {0}.", javaExitCode);
-      System.exit(1);
+      log.log(ERROR, "Failed to create shared archive (see log above). " +
+                      "Java process exited with code {0}.", javaExitCode);
+      throw new JCudosException();
     } 
   }
-  
+  //</editor-fold>
+
+  //<editor-fold desc="Stage D">
   /**
    * Stage D - Preparation of applications' local arg-files
    * @param libDirs list of paths to extracted libs
@@ -271,7 +295,7 @@ public class JCudos implements Runnable {
     Path jsaPath = outDir.resolve(SHARED_ARCHIVE_PATH);
     for (String libDir : libDirs) {
       Path libDirPath = Paths.get(libDir);
-      List<Path> privateLibPaths = getDirListing(libDirPath);
+      List<Path> privateLibPaths = PathUtils.getDirListing(libDirPath);
       int commonLibsCount = commonLibPaths.size();
       int privateLibsCount = privateLibPaths.size();
       String classpath = Stream.concat(commonLibPaths.stream(), privateLibPaths.stream())
@@ -298,53 +322,40 @@ public class JCudos implements Runnable {
     DirectoryStream.Filter<Path> libFilter = lib -> commonLibNames.contains(lib.getFileName());
     libDirs.stream()
            .map(Paths::get)
-           .forEach(libDir -> deleteFilesByFilter(libDir, libFilter));
+           .forEach(libDir -> PathUtils.deleteFilesByFilter(libDir, libFilter));
     log.log(INFO, "Removed {0} jars from each of {1} directories.", commonLibNames.size(), libDirs.size());
   }
+  //</editor-fold>
+
+  //<editor-fold desc="Auxiliary private methods">
   
-  private List<Path> getDirListing(Path dirPath) throws IOException {
-    List<Path> listing = new ArrayList<>();
-    try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
-      dirStream.forEach(listing::add);
-    }
-    return listing;
-  }
-  
-
-  private void deleteFilesByFilter(Path libDir, DirectoryStream.Filter<Path> libFilter) {
-    try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(libDir, libFilter)) {
-      for (Path path : dirStream) {
-        Files.deleteIfExists(path);
-      }
-
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-  
-
-  private Path copyFile(Path sourceFile, Path targetLibDir) {
-    try {
-      Path targetFile = targetLibDir.resolve(sourceFile.getFileName());
-      Files.copy(sourceFile, targetFile, COPY_ATTRIBUTES);
-      return targetFile;
-      
-    } catch (IOException e) {
-      e.printStackTrace();
-      return null;
-    }
-  }
-
-  private void fixPaths() {
+  private void validateRootPath(Path root) {
     // check root dir path
     if (!root.isAbsolute()) {
-      log.log(ERROR, "If ''root'' option is specified, it must be absolute. ''{0}'' is not correct.", root);
-      System.exit(1);
+      log.log(ERROR, "If ''root'' option is specified, it must be absolute. ''{0}'' is incorrect.", root);
+      throw new JCudosException();
     }
+  }
 
+  /**
+   * Resolves path to output directory against root path. Then creates output directory (including all its parents
+   * if necessary) and puts a lock file into it. The latter is needed to prevent jCudos processes from performing 
+   * simultaneously.
+   * @param outDir output directory to create (may already exist)
+   * @throws IOException in case of IO error during creating
+   * @return (possibly changed) path to output directory
+   */
+  private Path occupyOutDir(Path root, Path outDir) throws IOException {
     // fix output dir path
     if (!outDir.isAbsolute()) {
       outDir = root.resolve(outDir);
     }
+    // create output dir if necessary
+    Files.createDirectories(outDir);
+    // put a lock file 
+    Files.createFile(outDir.resolve(LOCK_FILE_NAME));
+    // return (possibly fixed) path
+    return outDir;
   }
+  //</editor-fold>
 }

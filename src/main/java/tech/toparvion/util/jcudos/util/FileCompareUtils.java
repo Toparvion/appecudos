@@ -1,42 +1,25 @@
-package tech.toparvion.util.jcudos;
+package tech.toparvion.util.jcudos.util;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
-import java.util.Comparator;
 
 import static java.nio.file.Files.isSameFile;
 
 /**
  * @author Toparvion
  */
-public final class Util {
+public final class FileCompareUtils {
+  private FileCompareUtils() { }
+
   /**
    * buffer size used for reading and writing
    * @implNote Taken from JDK 12's {@link Files} class
    */
   private static final int BUFFER_SIZE = 8192;
-
-  private Util() { }
-
-  public static Path prepareDir(Path desiredPath) throws IOException {
-    if (Files.isDirectory(desiredPath)) {
-      System.out.printf("Directory '%s' already exists. Cleaning it out...\n", desiredPath);
-      long deletedEntriesCount = Files.walk(desiredPath)
-              .sorted(Comparator.reverseOrder())
-              .map(Path::toFile)
-              .map(File::delete)
-              .filter(isDeleted -> isDeleted)
-              .count();
-      System.out.printf("Directory '%s' deleted with %d entries.\n", desiredPath, (deletedEntriesCount-1));
-    }
-    return Files.createDirectories(desiredPath);
-  }
 
   /**
    * Compares given paths in a "rough" manner, i.e. doesn't read the content of either file but checks (1) the names 
@@ -68,7 +51,7 @@ public final class Util {
   }
 
   /**
-   * Compares given paths in a precise manner, i.e. {@linkplain Util#mismatch(java.nio.file.Path, java.nio.file.Path) checks} 
+   * Compares given paths in a precise manner, i.e. {@linkplain FileCompareUtils#mismatch(Path, Path) checks}
    * every byte of one file against corresponding byte of another until finds a difference. 
    * @implNote This method implements the most accurate comparison strategy. Though it is quite slow because requires
    * opening and reading the content of a file byte by byte. To gain better performance with a chance of error, use
@@ -122,7 +105,7 @@ public final class Util {
    *
    * @return  the position of the first mismatch or {@code -1L} if no mismatch
    *
-   * @throws  IOException
+   * @throws IOException
    *          if an I/O error occurs
    * @throws  SecurityException
    *          In the case of the default provider, and a security manager is
@@ -156,56 +139,5 @@ public final class Util {
         totalRead += nRead1;
       }
     }
-  }
-
-  /**
-   * Encloses given action to {@code try/catch} block and wraps {@link IOException} 
-   * into {@link RuntimeException} if happens. 
-   * @param action any action that may throw {@link IOException}, e.g.
-   * {@link java.nio.file.Files#writeString(Path, CharSequence, OpenOption...) Files#writeString}
-   */
-  public static void wrap(ExplosiveVoidAction action) {
-    try {
-      action.act();
-      
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static <T> T wrap(ExplosiveReturningAction<T> action) {
-    try {
-      return action.act();
-      
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static void suppress(ExplosiveVoidAction action) {
-    try {
-      action.act();
-    
-    } catch (IOException e) {
-      e.printStackTrace();
-      // and nothing more to do here
-    }
-  }
-
-  @FunctionalInterface
-  public interface ExplosiveVoidAction {
-    void act() throws IOException;
-  }
-
-  @FunctionalInterface
-  public interface ExplosiveReturningAction<T> {
-    T act() throws IOException;
-  }
-
-  public static String nvls(String val, String def) {
-    if (val == null) {
-      return def;
-    }
-    return val;
   }
 }

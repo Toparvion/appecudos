@@ -1,13 +1,14 @@
 package tech.toparvion.util.jcudos.model.collate.entry;
 
 import tech.toparvion.util.jcudos.Constants;
-import tech.toparvion.util.jcudos.Util;
+import tech.toparvion.util.jcudos.util.FileCompareUtils;
+import tech.toparvion.util.jcudos.util.PathUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * A wrapper to represent a {@link Path} in Collate's entries map. Delegates files comparing to {@link Util} class. 
+ * A wrapper to represent a {@link Path} in Collate's entries map. Delegates files comparing to {@link PathUtils} class. 
  *
  * @author Toparvion
  */
@@ -28,10 +29,10 @@ public class PathEntry {
     PathEntry otherEntry = (PathEntry) other;
     try {
       if (preciseFileComparisonMode) {
-        return Util.arePreciselyEqual(this.path, otherEntry.path);
+        return FileCompareUtils.arePreciselyEqual(this.path, otherEntry.path);
 
       } else {
-        return Util.areRoughlyEqual(this.path, otherEntry.path);
+        return FileCompareUtils.areRoughlyEqual(this.path, otherEntry.path);
       }
       
     } catch (IOException e) {

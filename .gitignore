@@ -85,6 +85,7 @@ fabric.properties
 /.idea/artifacts/*
 
 .gradle/
+build/
 
 work/appcds/
 work/collate/optim/

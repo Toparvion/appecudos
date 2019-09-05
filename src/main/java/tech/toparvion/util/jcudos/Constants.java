@@ -13,7 +13,7 @@ import static java.util.stream.Collectors.joining;
 @SuppressWarnings("WeakerAccess")     // access level is left maximum for simplicity 
 public final class Constants {
   private Constants() { }
-  
+
   public static final String MY_NAME = "jcudos";
   public static final String MY_PRETTY_NAME = "jCuDoS";
 
@@ -47,4 +47,10 @@ public final class Constants {
    * Global mode flag for choosing between different approaches to comparing files with each other
    */
   public static boolean PRECISE_FILE_COMPARISON_MODE;
+
+  // application exit codes
+  
+  public static final int ALREADY_IN_PROGRESS_EXIT_CODE = 1;
+  public static final int APPCDS_ERROR_EXIT_CODE = 2;
+  public static final int INTERNAL_ERROR_EXIT_CODE = 3;
 }
