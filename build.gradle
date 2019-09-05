@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'application'
 }
 
 group 'tech.toparvion.util'
@@ -7,6 +7,10 @@ version '1.0'
 
 sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
+
+application {
+    mainClassName = 'tech.toparvion.util.jcudos.JCudos'
+}
 
 repositories {
     mavenCentral()
