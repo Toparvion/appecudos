@@ -55,7 +55,7 @@ public class ListAllClasses implements Runnable {
     }
   }
 
-  public Set<String> listClasses(Path sourcePath) throws IOException {
+  private Set<String> listClasses(Path sourcePath) throws IOException {
     List<Path> pathsToInspect;
     if (sourcePath.getFileName().toString().toLowerCase().endsWith(".jar") && !Files.isDirectory(sourcePath)) {
       pathsToInspect = List.of(sourcePath);
@@ -71,7 +71,6 @@ public class ListAllClasses implements Runnable {
     
     // iterate through detected files and extract class names from every one of them 
     Set<String> classes = new TreeSet<>();    // a Set<> collection is used to avoid duplicates in result list
-//    Set<String> classes = new LinkedHashSet<>(8192);    // a Set<> collection is used to avoid duplicates in result list
     for (Path jarPath : pathsToInspect) {
       var filesCount = 0;
       try (InputStream fis = Files.newInputStream(jarPath)) {

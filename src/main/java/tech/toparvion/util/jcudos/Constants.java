@@ -43,6 +43,14 @@ public final class Constants {
   public static final String LIB_DIR_NAME = "lib";
   public static final String LOCK_FILE_NAME = ".lock";
 
+  public enum ListConversion { ON, OFF, AUTO }
+  
+  /**
+   * A combination of tags used in JVM Unified Logging Framework when tracing the class loading.
+   * @see <a href="https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-BE93ABDC-999C-4CB5-A88B-1994AAAC74D5">JVM Unified Logging Framework</a> 
+   */
+  public static final String CLASSLOADING_TRACE_TAGS = "class,load";
+
   /**
    * Global mode flag for choosing between different approaches to comparing files with each other
    */
@@ -51,6 +59,6 @@ public final class Constants {
   // application exit codes
   
   public static final int ALREADY_IN_PROGRESS_EXIT_CODE = 1;
-  public static final int APPCDS_ERROR_EXIT_CODE = 2;
-  public static final int INTERNAL_ERROR_EXIT_CODE = 3;
+  public static final int APPCDS_ERROR_EXIT_CODE        = 2;
+  public static final int INTERNAL_ERROR_EXIT_CODE      = 3;
 }

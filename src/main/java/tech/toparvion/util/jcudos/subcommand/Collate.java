@@ -1,12 +1,14 @@
 package tech.toparvion.util.jcudos.subcommand;
 
+import io.simonis.cl4cds;
 import tech.toparvion.util.jcudos.Constants;
+import tech.toparvion.util.jcudos.Constants.ListConversion;
 import tech.toparvion.util.jcudos.infra.JCudosVersionProvider;
 import tech.toparvion.util.jcudos.model.collate.CollationResult;
 import tech.toparvion.util.jcudos.model.collate.entry.NestedJarEntry;
 import tech.toparvion.util.jcudos.model.collate.entry.PathEntry;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -14,8 +16,13 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import static java.lang.System.Logger.Level.*;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static picocli.CommandLine.*;
+import static picocli.CommandLine.Help.Visibility.ALWAYS;
+import static tech.toparvion.util.jcudos.Constants.CLASSLOADING_TRACE_TAGS;
+import static tech.toparvion.util.jcudos.Constants.ListConversion.AUTO;
+import static tech.toparvion.util.jcudos.Constants.ListConversion.ON;
 
 /**
  * @author Toparvion
@@ -31,7 +38,7 @@ public class Collate implements Callable<CollationResult> {
           "patterns pointing to either list files or directories (including fat JARs)")
   private List<String> args;
   
-  @Option(names = {"--work-dir", "-w"})
+  @Option(names = {"--work-dir", "-w"}, paramLabel = "<workDir>", showDefaultValue = ALWAYS)
   private Path root = Paths.get(System.getProperty("user.dir"));
   
   @Option(names = {"--exclusion", "-e"})
@@ -47,8 +54,14 @@ public class Collate implements Callable<CollationResult> {
    * @apiNote when using it from command line, the option must be set as '--precise-compare' 
    * (not as '--precise-compare true' i.e. no explicit 'true' or 'false' word required)
    */
-  @Option(names = {"-p", "--precise-compare"})
+  @Option(names = {"--precise-compare", "-p"}, description = "Should files be compared byte-by-byte?", 
+          showDefaultValue = ALWAYS)
   private boolean preciseFileComparisonMode = false;
+  
+  @Option(names = {"--convert-lists", "-c"}, 
+          description = "Conversion from -Xlog to plain class list file format: ${COMPLETION-CANDIDATES}.",
+          showDefaultValue = ALWAYS)
+  private ListConversion listConversion = AUTO;
   
   private Set<PathMatcher> exclusionMatchers = new HashSet<>();
 
@@ -80,14 +93,14 @@ public class Collate implements Callable<CollationResult> {
                   processFatJar(allEntries, matchedPathString);
 
                 } else {
-                  log.log(DEBUG, "Processing path ''{0}'' as plain list file...", matchedPath);
-                  List<String> lines = Files.readAllLines(matchedPath);
+                  log.log(DEBUG, "Processing path ''{0}'' as list file...", matchedPath);
+                  List<String> lines = readClassNames(matchedPath);
                   allEntries.put(matchedPath.toString(), lines);
                   log.log(INFO, "{0} lines have been put under ''{1}'' matched file name", lines.size(), matchedPath);
                 } 
 
               } else {
-                log.log(WARNING, "Path ''{0}'' doesn't point to existing and readable file. Skipped.", matchedPath);
+                log.log(WARNING, "Path ''{0}'' doesn''t point to existing and readable file. Skipped.", matchedPath);
                 allEntries.put(matchedPath.toString(), List.of());
               }
             }
@@ -106,8 +119,8 @@ public class Collate implements Callable<CollationResult> {
             
           } else {
             if (Files.isReadable(concretePath)) {
-              log.log(DEBUG, "Processing path ''{0}'' as plain list file...", concretePath);
-              List<String> lines = Files.readAllLines(concretePath);
+              log.log(DEBUG, "Processing path ''{0}'' as list file...", concretePath);
+              List<String> lines = readClassNames(concretePath);
               allEntries.put(arg, lines);
               log.log(INFO, "{0} lines have been put under ''{1}'' concrete file name", lines.size(), concretePath);
               
@@ -182,13 +195,62 @@ public class Collate implements Callable<CollationResult> {
             .isEmpty();
   }
 
-  private void processFatJar(Map<String, List<?>> allEntries, String arg) throws IOException {
-    log.log(INFO, "Processing path ''{0}'' as Spring Boot ''fat'' JAR...", arg);
-    var fatJarPath = absolutify(Paths.get(arg));
+  private List<String> readClassNames(Path matchedPath) throws IOException {
+    if (listConversion == AUTO) {     // try to auto detect the type of the file
+      String firstLine;
+      try (var bufReader = Files.newBufferedReader(matchedPath)) {
+        firstLine = bufReader.readLine();
+      }
+      // if given file is a JVM class loading trace file then we should convert it first to plain class list file
+      listConversion = firstLine.contains(CLASSLOADING_TRACE_TAGS) ? ON : ListConversion.OFF;
+      log.log(INFO, "File ''{0}'' is auto detected as {1} file.", matchedPath,  
+              (listConversion == ON) ? "JVM class loading trace" : "plain class list");
+    }
+    return (listConversion == ON)        // here only ENABLED and DISABLED values are possible
+            ? convertList(matchedPath)
+            : Files.readAllLines(matchedPath);
+  }
+
+  private List<String> convertList(Path matchedPath) throws IOException {
+    log.log(DEBUG, "Converting ''{0}'' log into plain class list...", matchedPath);
+    long startTime = System.currentTimeMillis();
+    // prepare a buffer to store raw result of cl4cds
+    var outStream = new ByteArrayOutputStream(0xffff);    // 65K to begin with
+    // call the tool to parse given file 
+    cl4cds.ClassesOnly = true;
+    try (var burReader = Files.newBufferedReader(matchedPath, UTF_8);
+         var outPrintStream = new PrintStream(outStream)) {
+      cl4cds.convert(burReader, outPrintStream);
+    }
+    // store the output into byte array and start reading it
+    var convertedBytes = outStream.toByteArray();
+    // outStream.close();   // has no effect, see javadoc
+    List<String> lines = new ArrayList<>(10_000);
+    try (var inReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(convertedBytes), UTF_8))) {
+      String line;
+      while ((line = inReader.readLine()) != null) {
+        lines.add(line);
+      }
+    }
+    long took = (System.currentTimeMillis() - startTime);
+    log.log(INFO, "Conversion of ''{0}'' log into plain class list took {1} ms and resulted in {2} records.",
+            matchedPath, took, lines.size());
+    return lines;
+  }
+
+  /**
+   * Treats given file as Spring Boot 'fat' JAR and collects all its nested JARs into given {@code allEntries} map.  
+   * @param allEntries map to append new entries into
+   * @param fatJarPathStr string representation of a path to 'fat' JAR file
+   * @throws IOException in case of any IO error
+   */
+  private void processFatJar(Map<String, List<?>> allEntries, String fatJarPathStr) throws IOException {
+    log.log(INFO, "Processing path ''{0}'' as Spring Boot ''fat'' JAR...", fatJarPathStr);
+    var fatJarPath = absolutify(Paths.get(fatJarPathStr));
     try (JarFile jarFile = new JarFile(fatJarPath.toString())) {
       String startClass = jarFile.getManifest().getMainAttributes().getValue("Start-Class");
       if (startClass == null) {
-        log.log(WARNING, "File ''{0}'' is not Spring Boot ''fat'' JAR or is malformed.", arg);
+        log.log(WARNING, "File ''{0}'' is not Spring Boot ''fat'' JAR or is malformed.", fatJarPathStr);
         return;
       }
       log.log(DEBUG, "For JAR ''{0}'' start class detected as: {1}", fatJarPath, startClass);
