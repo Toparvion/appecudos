@@ -17,9 +17,7 @@ repositories {
 }
 
 dependencies {
-    // the following dependency is used via copy of its main class (CommandLine) in 'picocli' package of jcudos sources
-    compile group: 'info.picocli', name: 'picocli', version: '3.9.6'
-    
+    compile group: 'info.picocli', name: 'picocli', version: '4.0.4'
 }
 
 jar {

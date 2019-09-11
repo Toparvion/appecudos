@@ -58,12 +58,15 @@ public class JCudos implements Runnable {
   @Option(names = {"--exclusion", "-e"})
   private Set<String> exclusionGlobs = new HashSet<>();  
   
-  @Option(names = {"--work-dir", "-w"})
+  @Option(names = {"--work-dir", "-w"}, paramLabel = "<workDir>")
   private Path root = Paths.get(System.getProperty("user.dir"));
 
   //<editor-fold desc="Entry point">
   public static void main(String[] args) {
-    CommandLine.run(new JCudos(), args);
+    var commandLine = new CommandLine(new JCudos());
+    commandLine.setCaseInsensitiveEnumValuesAllowed(true);    // to allow options either like '-c ON' or '-c OFF' 
+    int exitCode = commandLine.execute(args);
+    System.exit(exitCode);
   }
 
   @Override
