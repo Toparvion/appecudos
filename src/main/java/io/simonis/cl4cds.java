@@ -38,7 +38,7 @@ import java.util.zip.ZipEntry;
 
 /**
  * @author simonis
- *
+ * @author Toparvion
  */
 public class cl4cds {
 
@@ -46,7 +46,8 @@ public class cl4cds {
   private static final boolean DBG = Boolean.getBoolean("io.simonis.cl4cds.debug");
   private static final boolean DumpFromClassFiles = Boolean.getBoolean("io.simonis.cl4cds.dumpFromClassFile");
   private static final boolean CompactIDs = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.compactIDs", "true"));
-  private static final boolean ClassesOnly = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.classesOnly", "false"));
+  
+  public static boolean ClassesOnly = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.classesOnly", "false"));
   
   private enum Status {
     OK, ERROR, PRE_15, LOAD_ERROR, ZIP_ERROR, JAR_ERROR
@@ -89,7 +90,7 @@ public class cl4cds {
     convert(in, out);
   }
 
-  private static void convert(BufferedReader in, PrintStream out) {
+  public static void convert(BufferedReader in, PrintStream out) {
     // Pattern for JVM class names (see JVMLS §4.2)
     final String uqNameP = "((?:[^,;/\\[]+?\\.)*(?:[^,;/\\[]+?))";
     final String timeDecoP = "\\[.+?\\]";
@@ -118,8 +119,10 @@ public class cl4cds {
           String name = mr1.group(1);
           String source = mr1.group(2);
           if (source.contains("__JVM_DefineClass__")) {
-            // skip classes which have been generated dynamically at runtime
-            System.err.println("Skipping " + name + " from " + source + " - reason: dynamically generated class");
+            // skip classes which have been generated dynamically at runtime 
+            if (DBG) {
+              System.err.println("Skipping " + name + " from " + source + " - reason: dynamically generated class");
+            }
             continue;
           }
           if ((line = in.readLine()) != null &&
