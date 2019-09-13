@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.jar.Attributes;
 import java.util.stream.Collector;
 
+import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 /**
@@ -17,19 +18,23 @@ public final class Constants {
   public static final String MY_NAME = "jcudos";
   public static final String MY_PRETTY_NAME = "jCuDoS";
 
+  private static final String PATH_SEPARATOR = System.getProperty("path.separator");
+  private static final String NEW_LINE = System.getProperty("line.separator");
+
   public static final String COMMON_ARGFILE_INTRO = 
-          "-classpath\n" +
-          "# Common (shared) classpath\n";
+          "-classpath" + NEW_LINE + 
+          "# Common (shared) classpath" + NEW_LINE;
 
   public static final String PRIVATE_ARGFILE_TEMPLATE =
-                  "-XX:SharedArchiveFile=%s\n" +     // path to '_appcds/jsa/classes.jsa'    
-                  "-classpath\n" +
-                  "# the first %d entries are shared and the last %d entries (starting at line %d) are private\n" +
-                  "%s\n" +
-                  "# application's main class\n" +
-                  "%s\n";
+                  "-XX:SharedArchiveFile=%s" + NEW_LINE +     // path to '_appcds/jsa/classes.jsa'    
+                  "-classpath" + NEW_LINE + 
+                  "# the first %d entries are shared and the last %d entries (starting at line %d) are private" +
+                          NEW_LINE + "%s" + NEW_LINE + 
+                  "# application's main class" + NEW_LINE + 
+                  "%s" + NEW_LINE;
 
-  public static final Collector<CharSequence, ?, String> TO_CLASSPATH = joining(":\\\n  ", " \"", "\"");
+  public static final Collector<CharSequence, ?, String> TO_CLASSPATH = 
+          joining(format("%s\\%s  ", PATH_SEPARATOR, NEW_LINE), " \"", "\"");
 
   public static final Path SHARED_ROOT = Paths.get("_shared/");
   public static final Path SHARED_CLASS_LIST_PATH = SHARED_ROOT.resolve("list/classes.list");

@@ -218,6 +218,7 @@ public class Collate implements Callable<CollationResult> {
     var outStream = new ByteArrayOutputStream(0xffff);    // 65K to begin with
     // call the tool to parse given file 
     cl4cds.ClassesOnly = true;
+    cl4cds.DBG = log.isLoggable(DEBUG);
     try (var burReader = Files.newBufferedReader(matchedPath, UTF_8);
          var outPrintStream = new PrintStream(outStream)) {
       cl4cds.convert(burReader, outPrintStream);
@@ -229,7 +230,9 @@ public class Collate implements Callable<CollationResult> {
     try (var inReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(convertedBytes), UTF_8))) {
       String line;
       while ((line = inReader.readLine()) != null) {
-        lines.add(line);
+        if (!line.contains("$$FastClassBySpringCGLIB$$")) {
+          lines.add(line);
+        }
       }
     }
     long took = (System.currentTimeMillis() - startTime);

@@ -20,6 +20,7 @@ import static java.lang.System.Logger.Level.*;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static picocli.CommandLine.Command;
+import static picocli.CommandLine.Help.Visibility.ALWAYS;
 import static tech.toparvion.util.jcudos.Constants.*;
 import static tech.toparvion.util.jcudos.util.GeneralUtils.suppress;
 
@@ -46,13 +47,13 @@ public class JCudos implements Runnable {
     log = System.getLogger(JCudos.class.toString());
   }
 
-  @Option(names = {"--class-lists", "-c"})
+  @Option(names = {"--class-lists", "-c"}/*, required = true*/)
   private List<String> classListGlob;
   
-  @Option(names = {"--fat-jars", "-f"})
+  @Option(names = {"--fat-jars", "-f"}/*, required = true*/)
   private String fatJarsGlob;
   
-  @Option(names = {"--out-dir", "-o"}, defaultValue = "_appcds/")
+  @Option(names = {"--out-dir", "-o"}, defaultValue = "_appcds/", showDefaultValue = ALWAYS)
   private Path outDir;
   
   @Option(names = {"--exclusion", "-e"})
@@ -64,7 +65,7 @@ public class JCudos implements Runnable {
   //<editor-fold desc="Entry point">
   public static void main(String[] args) {
     var commandLine = new CommandLine(new JCudos());
-    commandLine.setCaseInsensitiveEnumValuesAllowed(true);    // to allow options either like '-c ON' or '-c OFF' 
+    commandLine.setCaseInsensitiveEnumValuesAllowed(true);    // to allow options either like '-c ON' or '-c on' 
     int exitCode = commandLine.execute(args);
     System.exit(exitCode);
   }
@@ -238,6 +239,7 @@ public class JCudos implements Runnable {
   private void createCommonArgFile(Path outDirPath, List<Path> commonLibPaths) throws IOException {
     String classpath = commonLibPaths.stream()
             .map(Path::toString)
+            .map(pathStr -> pathStr.replace("\\", "\\\\"))
             .collect(TO_CLASSPATH);
     String argFileContent = COMMON_ARGFILE_INTRO + classpath;
     Path argFilePath = outDirPath.resolve(SHARED_ARGFILE_PATH);

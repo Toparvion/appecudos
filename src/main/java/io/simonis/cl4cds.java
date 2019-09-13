@@ -43,7 +43,7 @@ import java.util.zip.ZipEntry;
 public class cl4cds {
 
   private static final String FatJarTmp = System.getProperty("io.simonis.cl4cds.fatJarTmp", "./tmp");
-  private static final boolean DBG = Boolean.getBoolean("io.simonis.cl4cds.debug");
+  public static /*final*/ boolean DBG = Boolean.getBoolean("io.simonis.cl4cds.debug");
   private static final boolean DumpFromClassFiles = Boolean.getBoolean("io.simonis.cl4cds.dumpFromClassFile");
   private static final boolean CompactIDs = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.compactIDs", "true"));
   
@@ -179,7 +179,9 @@ public class cl4cds {
                 sourceFile = source.substring("jar:file:".length(), source.length() - 2);
               }
               else {
-                System.err.println("Skipping " + name + " from " + source + " - reason: unknown source format");
+                if (DBG) {
+                  System.err.println("Skipping " + name + " from " + source + " - reason: unknown source format");
+                }
                 continue;
               }
               if (!DumpFromClassFiles)
@@ -187,7 +189,9 @@ public class cl4cds {
                   sourceFile = sourceFile.substring(1);   // to remove leading slash from paths like '/C:/Users/...'
                 }
                 if (Files.isDirectory(Paths.get(sourceFile))) {
-                  System.err.println("Skipping " + name + " from " + sourceFile + " - reason: loaded from class file (try '-Dio.simonis.cl4cds.dumpFromClassFile=true')");
+                  if (DBG) {
+                    System.err.println("Skipping " + name + " from " + sourceFile + " - reason: loaded from class file (try '-Dio.simonis.cl4cds.dumpFromClassFile=true')");
+                  }
                   continue;
                 }
               Status ret;
@@ -197,23 +201,27 @@ public class cl4cds {
                 sourceFile = extractFatJar(sourceFile);
               }
               if ((ret = checkClass(name.replace('.', '/'), sourceFile)) != Status.OK) {
-                switch (ret) {
-                case PRE_15 : 
-                  System.err.println("Skipping " + name + " from " + sourceFile + " - reason: class is pre 1.5");
-                  break;
-                case LOAD_ERROR:
-                case ZIP_ERROR:
-                case JAR_ERROR:
-                  System.err.println("Skipping " + name + " from " + sourceFile + " - reason: can't load (maybe generataed?))");
-                  break;
-                case ERROR:
-                  System.err.println("Skipping " + name + " from " + sourceFile + " - reason: unknown source");
-                  break;
+                if (DBG) {
+                  switch (ret) {
+                  case PRE_15 : 
+                    System.err.println("Skipping " + name + " from " + sourceFile + " - reason: class is pre 1.5");
+                    break;
+                  case LOAD_ERROR:
+                  case ZIP_ERROR:
+                  case JAR_ERROR:
+                    System.err.println("Skipping " + name + " from " + sourceFile + " - reason: can't load (maybe generated?))");
+                    break;
+                  case ERROR:
+                    System.err.println("Skipping " + name + " from " + sourceFile + " - reason: unknown source");
+                    break;
+                  }
                 }
                 continue;
               }
               if (klassNameSet.contains(name)) {
-                System.err.println("Skipping " + name + " from " + sourceFile + " - reason: already dumped");
+                if (DBG) {
+                  System.err.println("Skipping " + name + " from " + sourceFile + " - reason: already dumped");
+                }
                 continue;
               }
               List<String> deps = new LinkedList<>();
@@ -235,7 +243,9 @@ public class cl4cds {
                 klassNameSet.add(name);
               }
               else {
-                System.err.println("Skipping " + name + " from " + sourceFile + " - reason: failed dependencies");
+                if (DBG) {
+                  System.err.println("Skipping " + name + " from " + sourceFile + " - reason: failed dependencies");
+                }
               }
             }
           }

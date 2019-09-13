@@ -10,10 +10,10 @@ import java.util.List;
 
 import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Option;
+import static tech.toparvion.util.jcudos.Constants.TO_CLASSPATH;
 
 /**
  * @author Toparvion
@@ -58,7 +58,7 @@ public class CopyFilesByList implements Runnable {
       }
       String classpath = jarList.stream()
               .map(Path::toString)
-              .collect(joining(":\\\n  ", " \"", "\""));
+              .collect(TO_CLASSPATH);
       String argFileContent = Constants.COMMON_ARGFILE_INTRO + classpath;
       Files.writeString(argFilePath, argFileContent);
       System.out.printf("Arg file created: %s\n", argFilePath);
