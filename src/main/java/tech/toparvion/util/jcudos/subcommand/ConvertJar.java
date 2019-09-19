@@ -24,7 +24,7 @@ import static picocli.CommandLine.Option;
         versionProvider = JCudosVersionProvider.class,
         description = "Converts given fat JAR into slim one.%nResulting file has the same name and '.slim.jar' extension.")
 public class ConvertJar implements Runnable {
-  private static final System.Logger log = System.getLogger(ConvertJar.class.toString());
+  private static final System.Logger log = System.getLogger(ConvertJar.class.getSimpleName());
 
   @Option(names = {"--input-jar", "-i"}, required = true, description = "Path to input fat JAR file")
   private Path fatJarPath;

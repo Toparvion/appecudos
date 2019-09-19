@@ -44,7 +44,7 @@ public class JCudos implements Runnable {
 
   static {
     System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
-    log = System.getLogger(JCudos.class.toString());
+    log = System.getLogger(JCudos.class.getSimpleName());
   }
 
   @Option(names = {"--class-lists", "-c"}/*, required = true*/)

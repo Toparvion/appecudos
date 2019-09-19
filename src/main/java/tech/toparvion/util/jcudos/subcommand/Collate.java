@@ -7,6 +7,7 @@ import tech.toparvion.util.jcudos.infra.JCudosVersionProvider;
 import tech.toparvion.util.jcudos.model.collate.CollationResult;
 import tech.toparvion.util.jcudos.model.collate.entry.NestedJarEntry;
 import tech.toparvion.util.jcudos.model.collate.entry.PathEntry;
+import tech.toparvion.util.jcudos.util.PathUtils;
 
 import java.io.*;
 import java.nio.file.*;
@@ -20,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static picocli.CommandLine.*;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
-import static tech.toparvion.util.jcudos.Constants.CLASSLOADING_TRACE_TAGS;
 import static tech.toparvion.util.jcudos.Constants.ListConversion.AUTO;
 import static tech.toparvion.util.jcudos.Constants.ListConversion.ON;
 
@@ -32,7 +32,7 @@ import static tech.toparvion.util.jcudos.Constants.ListConversion.ON;
         versionProvider = JCudosVersionProvider.class,
         description = "Collates given lists irrespective to their elements order")
 public class Collate implements Callable<CollationResult> {
-  private static final System.Logger log = System.getLogger(Collate.class.toString());
+  private static final System.Logger log = System.getLogger(Collate.class.getSimpleName());
 
   @Parameters(paramLabel = "LISTS", description = "Paths to lists to be analyzed. Can be concrete paths of glob " +
           "patterns pointing to either list files or directories (including fat JARs)")
@@ -197,14 +197,7 @@ public class Collate implements Callable<CollationResult> {
 
   private List<String> readClassNames(Path matchedPath) throws IOException {
     if (listConversion == AUTO) {     // try to auto detect the type of the file
-      String firstLine;
-      try (var bufReader = Files.newBufferedReader(matchedPath)) {
-        firstLine = bufReader.readLine();
-      }
-      // if given file is a JVM class loading trace file then we should convert it first to plain class list file
-      listConversion = firstLine.contains(CLASSLOADING_TRACE_TAGS) ? ON : ListConversion.OFF;
-      log.log(INFO, "File ''{0}'' is auto detected as {1} file.", matchedPath,  
-              (listConversion == ON) ? "JVM class loading trace" : "plain class list");
+      listConversion = PathUtils.detectClassListType(matchedPath);
     }
     return (listConversion == ON)        // here only ENABLED and DISABLED values are possible
             ? convertList(matchedPath)

@@ -7,6 +7,7 @@ import java.util.*;
 
 import static java.util.stream.Collectors.*;
 import static picocli.CommandLine.*;
+import static picocli.CommandLine.Help.Visibility.ALWAYS;
 
 /**
  * @author Toparvion
@@ -27,7 +28,7 @@ public class Estimate implements Runnable {
           "source: file:", SourceType.FILE,
           "source: jrt:", SourceType.JRT
   );
-  @Option(names = {"--root", "-r"})
+  @Option(names = {"--root", "-r"}, paramLabel = "<workDir>", showDefaultValue = ALWAYS)
   private Path root = Paths.get(System.getProperty("user.dir"));
 
   @Parameters(paramLabel = "GLOB", description = "Glob expression describing paths to class load logs")
@@ -58,6 +59,7 @@ public class Estimate implements Runnable {
       System.out.printf("File: %s\n", classLoadLogPath);
       TreeMap<SourceType, Integer> localStats = Files.readAllLines(classLoadLogPath)
               .stream()
+              .filter(this::relevantLinesOnly)
               .collect(groupingBy(this::detectSourceType,
                       () -> new TreeMap<>(Comparator.comparingInt(SourceType::ordinal)),
                       collectingAndThen(toList(), List::size)));
@@ -77,7 +79,11 @@ public class Estimate implements Runnable {
       System.out.println("============================================================");       
     }
   }
-  
+
+  private boolean relevantLinesOnly(String line) {
+    return line.contains(" source: ");
+  }
+
   private SourceType detectSourceType(String classLoadRecord) {
     return SOURCE_TYPE_MARKERS.entrySet()
             .stream()

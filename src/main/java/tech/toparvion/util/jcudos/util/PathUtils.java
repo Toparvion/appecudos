@@ -1,5 +1,7 @@
 package tech.toparvion.util.jcudos.util;
 
+import tech.toparvion.util.jcudos.Constants;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -9,12 +11,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import static java.lang.System.Logger.Level.INFO;
 import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
+import static tech.toparvion.util.jcudos.Constants.CLASSLOADING_TRACE_TAGS;
+import static tech.toparvion.util.jcudos.Constants.ListConversion.ON;
 
 /**
  * @author Toparvion
  */
 public final class PathUtils {
+  private static final System.Logger log = System.getLogger(PathUtils.class.getSimpleName());
+  
   private PathUtils() { }
 
   /**
@@ -83,5 +90,22 @@ public final class PathUtils {
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  /**
+   * @return either {@link tech.toparvion.util.jcudos.Constants.ListConversion#ON ON} 
+   * or {@link tech.toparvion.util.jcudos.Constants.ListConversion#OFF OFF}, 
+   * never {@link tech.toparvion.util.jcudos.Constants.ListConversion#AUTO AUTO}  
+   */
+  public static Constants.ListConversion detectClassListType(Path classListPath) throws IOException {
+    String firstLine;
+    try (var bufReader = Files.newBufferedReader(classListPath)) {
+      firstLine = bufReader.readLine();
+    }
+    // if given file is a JVM class loading trace file then we should convert it first to plain class list file
+    var listConversion = firstLine.contains(CLASSLOADING_TRACE_TAGS) ? ON : Constants.ListConversion.OFF;
+    log.log(INFO, "File ''{0}'' is auto detected as {1} file.", classListPath,  
+            (listConversion == ON) ? "JVM class loading trace" : "plain class list");
+    return listConversion;
   }
 }
