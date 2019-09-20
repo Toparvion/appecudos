@@ -207,18 +207,7 @@ public class Collate implements Callable<CollationResult> {
   private List<String> convertList(Path matchedPath) throws IOException {
     log.log(DEBUG, "Converting ''{0}'' log into plain class list...", matchedPath);
     long startTime = System.currentTimeMillis();
-    // prepare a buffer to store raw result of cl4cds
-    var outStream = new ByteArrayOutputStream(0xffff);    // 65K to begin with
-    // call the tool to parse given file 
-    cl4cds.ClassesOnly = true;
-    cl4cds.DBG = log.isLoggable(DEBUG);
-    try (var burReader = Files.newBufferedReader(matchedPath, UTF_8);
-         var outPrintStream = new PrintStream(outStream)) {
-      cl4cds.convert(burReader, outPrintStream);
-    }
-    // store the output into byte array and start reading it
-    var convertedBytes = outStream.toByteArray();
-    // outStream.close();   // has no effect, see javadoc
+    byte[] convertedBytes = invokeCl4cds(matchedPath);
     List<String> lines = new ArrayList<>(10_000);
     try (var inReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(convertedBytes), UTF_8))) {
       String line;
@@ -232,6 +221,27 @@ public class Collate implements Callable<CollationResult> {
     log.log(INFO, "Conversion of ''{0}'' log into plain class list took {1} ms and resulted in {2} records.",
             matchedPath, took, lines.size());
     return lines;
+  }
+
+  private byte[] invokeCl4cds(Path matchedPath) throws IOException {
+    // prepare a buffer to store raw result of cl4cds
+    var outStream = new ByteArrayOutputStream(0xffff);    // 65K to begin with
+    // call the tool to parse given file 
+    cl4cds.ClassesOnly = true;
+    cl4cds.CompactIDs = false;    // to avoid excess work as we don't need IDs at all 
+    cl4cds.DBG = log.isLoggable(DEBUG);
+    Path fatJarTmpDir = Paths.get(System.getProperty("java.io.tmpdir"), "cl4cds");
+    cl4cds.FatJarTmp = fatJarTmpDir.toString();
+    try (var bufReader = Files.newBufferedReader(matchedPath, UTF_8);
+         var outPrintStream = new PrintStream(outStream)) {
+      cl4cds.convert(bufReader, outPrintStream);                  // the single call to cl4cds itself
+    } finally {
+      PathUtils.cleanOutDir(fatJarTmpDir);
+      Files.delete(fatJarTmpDir);
+    }
+    // store the output into byte array for further reading
+    return outStream.toByteArray();
+    // outStream.close();   // has no effect, see javadoc
   }
 
   /**

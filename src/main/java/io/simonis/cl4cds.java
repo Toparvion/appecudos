@@ -42,12 +42,12 @@ import java.util.zip.ZipEntry;
  */
 public class cl4cds {
 
-  private static final String FatJarTmp = System.getProperty("io.simonis.cl4cds.fatJarTmp", "./tmp");
+  public static /*final*/ String FatJarTmp = System.getProperty("io.simonis.cl4cds.fatJarTmp", "./tmp");
   public static /*final*/ boolean DBG = Boolean.getBoolean("io.simonis.cl4cds.debug");
+  public static /*final*/ boolean ClassesOnly = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.classesOnly", "false"));
+  public static /*final*/ boolean CompactIDs = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.compactIDs", "true"));
+
   private static final boolean DumpFromClassFiles = Boolean.getBoolean("io.simonis.cl4cds.dumpFromClassFile");
-  private static final boolean CompactIDs = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.compactIDs", "true"));
-  
-  public static boolean ClassesOnly = Boolean.parseBoolean(System.getProperty("io.simonis.cl4cds.classesOnly", "false"));
   
   private enum Status {
     OK, ERROR, PRE_15, LOAD_ERROR, ZIP_ERROR, JAR_ERROR
@@ -100,7 +100,7 @@ public class cl4cds {
     final String debugDecoP = "\\[debug *\\Q][class,load]\\E ";
     Pattern firstLineP = Pattern.compile(timeDecoP + infoDecoP + uqNameP + " source: (.+)");
     Pattern secondLineP = Pattern.compile(timeDecoP + debugDecoP + 
-        " klass:" + hexP + " super:" + hexP + "(?: interfaces:" + hexesP + ")? loader: \\[(.+?)\\]" + ".+");
+        " klass:" + hexP + " super:" + hexP + "(?: interfaces:" + hexesP + ")? loader: \\[(.+?)\\]" + ".*");
     if (DBG) {
       System.err.println("The following two patterns are used to match the -Xlog:class+load=trace output:");
       System.err.println("  " + firstLineP.toString());

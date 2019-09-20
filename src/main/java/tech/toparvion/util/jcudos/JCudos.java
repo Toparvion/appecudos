@@ -216,7 +216,7 @@ public class JCudos implements Runnable {
    */
   private List<Path> copySharedLibs(List<String> libDirs, Path outDirPath, Set<String> intersection) throws IOException {
     Path sourceLibDir = Paths.get(libDirs.get(0));  // as common part is the same in all dirs, we can take the first one
-    Path targetLibDir = PathUtils.prepareDir(outDirPath.resolve(SHARED_ROOT).resolve(LIB_DIR_NAME));
+    Path targetLibDir = PathUtils.cleanOutDir(outDirPath.resolve(SHARED_ROOT).resolve(LIB_DIR_NAME));
 
     List<Path> commonLibPaths = Files.walk(sourceLibDir)
             .filter(sourceFile -> intersection.contains(sourceFile.getFileName().toString()))
@@ -251,7 +251,7 @@ public class JCudos implements Runnable {
    * C.5 - execute java -Xshare:dump with all the accumulated data
    */
   private void executeJavaXShareDump(Path outDirPath) throws IOException, InterruptedException {
-    PathUtils.prepareDir(outDirPath.resolve(SHARED_ARCHIVE_PATH.getParent()));
+    PathUtils.cleanOutDir(outDirPath.resolve(SHARED_ARCHIVE_PATH.getParent()));
     var javaExecutable = System.getProperty("os.name").toLowerCase().startsWith("windows")
             ? "java.exe"
             : "java";

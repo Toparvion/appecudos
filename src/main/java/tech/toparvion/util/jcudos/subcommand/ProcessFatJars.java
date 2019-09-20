@@ -73,7 +73,7 @@ public class ProcessFatJars implements Callable<List<String>> {
       }
       String appName = startClass.substring(startClass.lastIndexOf('.')+1).toLowerCase();
       // prepare local output dir (removing its content firstly if needed) 
-      Path localOutDir = PathUtils.prepareDir(outDir.resolve(appName));
+      Path localOutDir = PathUtils.cleanOutDir(outDir.resolve(appName));
       
       // B.2 - store start class name in a text file
       Path startClassFile = localOutDir.resolve(START_CLASS_FILE_NAME);

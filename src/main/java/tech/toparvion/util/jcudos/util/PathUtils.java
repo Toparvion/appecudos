@@ -1,6 +1,6 @@
 package tech.toparvion.util.jcudos.util;
 
-import tech.toparvion.util.jcudos.Constants;
+import tech.toparvion.util.jcudos.Constants.ListConversion;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +14,7 @@ import java.util.List;
 import static java.lang.System.Logger.Level.INFO;
 import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
 import static tech.toparvion.util.jcudos.Constants.CLASSLOADING_TRACE_TAGS;
+import static tech.toparvion.util.jcudos.Constants.ListConversion.OFF;
 import static tech.toparvion.util.jcudos.Constants.ListConversion.ON;
 
 /**
@@ -31,14 +32,13 @@ public final class PathUtils {
    * @return path to cleaned directory
    * @throws IOException in case of IO errors during clearing
    */
-  public static Path prepareDir(Path dirPath) throws IOException {
+  public static Path cleanOutDir(Path dirPath) throws IOException {
     if (Files.isDirectory(dirPath)) {
       System.out.printf("Directory '%s' already exists. Cleaning it out...\n", dirPath);
       long deletedEntriesCount = Files.walk(dirPath)
               .sorted(Comparator.reverseOrder())
               .map(Path::toFile)
               .map(File::delete)
-              .filter(isDeleted -> isDeleted)
               .count();
       System.out.printf("Directory '%s' deleted with %d entries.\n", dirPath, (deletedEntriesCount-1));
     }
@@ -61,12 +61,12 @@ public final class PathUtils {
   /**
    * Copies specified file into specified directory keeping the same name
    * @param sourceFile path to file to copy
-   * @param targetLibDir path to directory to copy the file into
+   * @param targetDir path to directory to copy the file into
    * @return path to copied file
    */
-  public static Path copyFile(Path sourceFile, Path targetLibDir) {
+  public static Path copyFile(Path sourceFile, Path targetDir) {
     try {
-      Path targetFile = targetLibDir.resolve(sourceFile.getFileName());
+      Path targetFile = targetDir.resolve(sourceFile.getFileName());
       Files.copy(sourceFile, targetFile, COPY_ATTRIBUTES);
       return targetFile;
 
@@ -93,17 +93,17 @@ public final class PathUtils {
   }
 
   /**
-   * @return either {@link tech.toparvion.util.jcudos.Constants.ListConversion#ON ON} 
-   * or {@link tech.toparvion.util.jcudos.Constants.ListConversion#OFF OFF}, 
-   * never {@link tech.toparvion.util.jcudos.Constants.ListConversion#AUTO AUTO}  
+   * @return either {@link ListConversion#ON ON} 
+   * or {@link ListConversion#OFF OFF}, but 
+   * never {@link ListConversion#AUTO AUTO}  
    */
-  public static Constants.ListConversion detectClassListType(Path classListPath) throws IOException {
+  public static ListConversion detectClassListType(Path classListPath) throws IOException {
     String firstLine;
     try (var bufReader = Files.newBufferedReader(classListPath)) {
       firstLine = bufReader.readLine();
     }
     // if given file is a JVM class loading trace file then we should convert it first to plain class list file
-    var listConversion = firstLine.contains(CLASSLOADING_TRACE_TAGS) ? ON : Constants.ListConversion.OFF;
+    var listConversion = firstLine.contains(CLASSLOADING_TRACE_TAGS) ? ON : OFF;
     log.log(INFO, "File ''{0}'' is auto detected as {1} file.", classListPath,  
             (listConversion == ON) ? "JVM class loading trace" : "plain class list");
     return listConversion;

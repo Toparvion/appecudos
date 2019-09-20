@@ -87,7 +87,5 @@ fabric.properties
 .gradle/
 build/
 
-work/appcds/
-work/collate/optim/
-work/convert/
+work/
 _appcds/
