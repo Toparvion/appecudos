@@ -23,8 +23,8 @@ import static picocli.CommandLine.Option;
         mixinStandardHelpOptions = true,
         versionProvider = JCudosVersionProvider.class,
         description = "Converts given fat JAR into slim one.%nResulting file has the same name and '.slim.jar' extension.")
-public class ConvertJar implements Runnable {
-  private static final System.Logger log = System.getLogger(ConvertJar.class.getSimpleName());
+public class Convert implements Runnable {
+  private static final System.Logger log = System.getLogger(Convert.class.getSimpleName());
 
   @Option(names = {"--input-jar", "-i"}, required = true, description = "Path to input fat JAR file")
   private Path fatJarPath;
@@ -50,7 +50,7 @@ public class ConvertJar implements Runnable {
         Manifest manifest = new Manifest();
         Attributes attributes = manifest.getMainAttributes();
         attributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        attributes.putValue("Built-By", Constants.MY_PRETTY_NAME);
+        attributes.putValue("Created-By", Constants.MY_PRETTY_NAME);
         try (JarOutputStream targetJarOutStream = new JarOutputStream(targetOutStream, manifest)) {
           try (InputStream sourceInStream = Files.newInputStream(fatJarPath)) {
             try (JarInputStream sourceJarInStream = new JarInputStream(sourceInStream)) {
@@ -67,13 +67,15 @@ public class ConvertJar implements Runnable {
                 if (sourceEntryPath.getNameCount() <= 2) {
                   continue;
                 }
-                Path targetEntryPath = sourceEntryPath.subpath(2, sourceEntryPath.getNameCount());
+                String targetEntryPath = sourceEntryPath.subpath(2, sourceEntryPath.getNameCount())
+                                                        .toString()
+                                                        .replace('\\', '/');
                 if (sourceJarEntry.isDirectory()) {
-                  String targetDirectoryName = targetEntryPath.toString() + "/";
+                  String targetDirectoryName = targetEntryPath + "/";
                   JarEntry targetJarEntry = new JarEntry(targetDirectoryName);
                   targetJarOutStream.putNextEntry(targetJarEntry);
                 } else {
-                  JarEntry targetJarEntry = new JarEntry(targetEntryPath.toString());
+                  JarEntry targetJarEntry = new JarEntry(targetEntryPath);
                   targetJarOutStream.putNextEntry(targetJarEntry);
                   sourceJarInStream.transferTo(targetJarOutStream);
                   targetJarOutStream.closeEntry();

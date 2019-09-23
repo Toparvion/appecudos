@@ -36,7 +36,7 @@ import static tech.toparvion.util.jcudos.util.GeneralUtils.suppress;
                 Collate.class,
                 CopyFilesByList.class,
                 Evert.class,
-                ConvertJar.class,
+                Convert.class,
                 Estimate.class
         })
 public class JCudos implements Runnable {

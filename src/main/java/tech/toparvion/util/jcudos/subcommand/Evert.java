@@ -37,8 +37,8 @@ public class Evert implements Callable<List<String>> {
   @Option(names = {"--exclusion", "-e"})
   private Set<String> exclusionGlobs = new HashSet<>();
 
-  @Option(names = {"--out-dir", "-o"}, showDefaultValue = ALWAYS)
-  private Path outDir = Paths.get("appcds");
+  @Option(names = {"--out-dir", "-o"}, description = "Output directory. Defaults to the directory of every processed JAR.")
+  private Path outDir = null;
   
   //@Nullable   // null means that argFile creation is disabled
   @Option(names = {"-arg-file-name", "-a"}, showDefaultValue = ALWAYS)
@@ -63,7 +63,7 @@ public class Evert implements Callable<List<String>> {
       setupExclusionMatchers();
       List<String> allLibDirPaths = new ArrayList<>();
       for (String fatJarArg : fatJarArgs) {
-        if (fatJarArg.contains("*")) {                                              // Glob pattern
+        if (fatJarArg.contains("*") || fatJarArg.contains("{")) {                   // Glob pattern
           log.log(DEBUG, "Processing ''{0}'' as Glob pattern...", fatJarArg);
           PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + fatJarArgs);
           // here we filter JAR files only, postponing detection of whether they are fat ones to 'process' method
@@ -111,7 +111,7 @@ public class Evert implements Callable<List<String>> {
    * 1. Checks if given JAR is a 'fat' one by searching for Start-Class attribute in its manifest <br/>
    * 2. Stores start class name in a text file <br/>
    * 3. Traverses fat JAR's content and extract all nested JARs <br/> 
-   * 4. Converts fat JAR into slim one by means of {@link ConvertJar} command
+   * 4. Converts fat JAR into slim one by means of {@link Convert} command
    * 
    * @param fatJarPath path to Spring Boot fat JAR
    * @return string path to lib directory containing all the extracted (formerly nested) JAR files; <br/> 
@@ -127,7 +127,10 @@ public class Evert implements Callable<List<String>> {
         return null;
       }
       String appName = startClass.substring(startClass.lastIndexOf('.')+1).toLowerCase();
-      // prepare local output dir (removing its content firstly if needed) 
+      // prepare local output dir (removing its content firstly if needed)
+      if (outDir == null) {
+        outDir = fatJarPath.getParent();
+      }
       Path localOutDir = PathUtils.cleanOutDir(outDir.resolve(appName));
       
       // B.2 - store start class name in a text file
@@ -141,7 +144,7 @@ public class Evert implements Callable<List<String>> {
       extractNestedJars(fatJarPath, localLibDir);
 
       // B.4 - invoke conversion command to create 'slim' JAR from 'fat' one 
-      ConvertJar convertCommand = new ConvertJar();
+      Convert convertCommand = new Convert();
       convertCommand.setFatJarPath(fatJarPath);
       convertCommand.setSlimJarDir(localLibDir);
       convertCommand.run();

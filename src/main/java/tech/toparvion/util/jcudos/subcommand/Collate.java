@@ -71,8 +71,8 @@ public class Collate implements Callable<CollationResult> {
     Map<String, List<?>> allEntries = new HashMap<>();
     for (String arg : args) {
       try {
-        if (arg.contains("*")) {
-          log.log(DEBUG, "Path ''{0}'' contains wildcard(s), will be processed as Glob pattern...", arg);
+        if (arg.contains("*") || arg.contains("{")) {
+          log.log(DEBUG, "Processing path ''{0}'' as Glob pattern...", arg);
           PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + arg);
           List<Path> matchedPaths = Files.walk(root)
 //                  .filter(path -> matcher.matches(root.relativize(path)))
