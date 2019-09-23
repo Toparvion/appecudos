@@ -35,7 +35,7 @@ import static tech.toparvion.util.jcudos.util.GeneralUtils.suppress;
                 ListMergedClasses.class,
                 Collate.class,
                 CopyFilesByList.class,
-                ProcessFatJars.class,
+                Evert.class,
                 ConvertJar.class,
                 Estimate.class
         })
@@ -51,7 +51,7 @@ public class JCudos implements Runnable {
   private List<String> classListGlob;
   
   @Option(names = {"--fat-jars", "-f"}/*, required = true*/)
-  private String fatJarsGlob;
+  private List<String> fatJarsGlob;
   
   @Option(names = {"--out-dir", "-o"}, defaultValue = "_appcds/", showDefaultValue = ALWAYS)
   private Path outDir;
@@ -72,7 +72,7 @@ public class JCudos implements Runnable {
 
   @Override
   public void run() {
-    log.log(INFO, "{0} has been called: classListGlob={1}, fatJarsGlob={2}, outDirPath={3}, " +
+    log.log(INFO, "{0} has been called: classListGlobs={1}, fatJarsGlobs={2}, outDirPath={3}, " +
                     "exclusions={4}, root={5}", MY_PRETTY_NAME, classListGlob, fatJarsGlob, outDir, exclusionGlobs, root);
     try {
       validateRootPath(root);    // throws an exception in case of validation fail
@@ -146,19 +146,20 @@ public class JCudos implements Runnable {
   /**
    * Stage B - fat JARs processing
    * @param root root directory of microservices
-   * @param fatJarsGlob relative Glob pattern to find out files to process
+   * @param fatJarsGlob relative Glob patterns to find out files to process
    * @param exclusionGlobs a set of excluding globs
    * @param outDir output directory path, e.g. {@code _shared/}
    * @return a list of string paths to {@code lib} directories created next to fat JARs
    */
-  private List<String> processFatJars(Path root, String fatJarsGlob, Set<String> exclusionGlobs, Path outDir) {
+  private List<String> processFatJars(Path root, List<String> fatJarsGlob, Set<String> exclusionGlobs, Path outDir) {
     // B.(1-4)
-    ProcessFatJars processCommand = new ProcessFatJars();
-    processCommand.setRoot(root);
-    processCommand.setFatJarsGlob(fatJarsGlob);
-    processCommand.setExclusionGlobs(exclusionGlobs);
-    processCommand.setOutDir(outDir);
-    List<String> libOutDirPaths = processCommand.call();
+    Evert evertCommand = new Evert();
+    evertCommand.setRoot(root);
+    evertCommand.setFatJarArgs(fatJarsGlob);
+    evertCommand.setExclusionGlobs(exclusionGlobs);
+    evertCommand.setOutDir(outDir);
+    evertCommand.setArgFilePath(null);      // to disable argFile creation as we'll do it later and differently
+    List<String> libOutDirPaths = evertCommand.call();
     if (libOutDirPaths.isEmpty()) {
       log.log(ERROR, "No fat JARs were processed by Glob ''{0}'' in directory ''{1}''.", fatJarsGlob, root);
       throw new JCudosException();
@@ -304,11 +305,12 @@ public class JCudos implements Runnable {
       int commonLibsCount = commonLibPaths.size();
       int privateLibsCount = privateLibPaths.size();
       String classpath = Stream.concat(commonLibPaths.stream(), privateLibPaths.stream())
-              .map(Path::toString)
-              .collect(TO_CLASSPATH);
+          .map(Path::toString)
+          .map(path -> path.replace("\\", "\\\\"))    // to account for @arg-file quotation format
+          .collect(TO_CLASSPATH);
       var startClass = Files.readString(libDirPath.resolveSibling(START_CLASS_FILE_NAME));
       String argFileContent = String.format(PRIVATE_ARGFILE_TEMPLATE, jsaPath, commonLibsCount, privateLibsCount,
-              (commonLibsCount + 4), classpath, startClass);
+              (commonLibsCount + 4), classpath, startClass);    // 4 accounts for header lines
       Path privateArgFilePath = libDirPath.resolveSibling(APPCDS_ARGFILE_NAME);
       Files.writeString(privateArgFilePath, argFileContent);
       log.log(INFO, "Written {0} classpath entries to application arg-file ''{1}''.", 

@@ -108,4 +108,11 @@ public final class PathUtils {
             (listConversion == ON) ? "JVM class loading trace" : "plain class list");
     return listConversion;
   }
+
+  public static Path absolutify(Path localPath, Path root) {
+    if (!localPath.isAbsolute()) {
+      localPath = root.resolve(localPath);
+    }
+    return localPath;
+  }
 }

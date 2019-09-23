@@ -25,13 +25,30 @@ public final class Constants {
           "-classpath" + NEW_LINE + 
           "# Common (shared) classpath" + NEW_LINE;
 
+  /**
+   * Argfile template to be used in processing of multiple different applications
+   */
   public static final String PRIVATE_ARGFILE_TEMPLATE =
-                  "-XX:SharedArchiveFile=%s" + NEW_LINE +     // path to '_appcds/jsa/classes.jsa'    
-                  "-classpath" + NEW_LINE + 
-                  "# the first %d entries are shared and the last %d entries (starting at line %d) are private" +
-                          NEW_LINE + "%s" + NEW_LINE + 
-                  "# application's main class" + NEW_LINE + 
-                  "%s" + NEW_LINE;
+      "-XX:SharedArchiveFile=%s" + NEW_LINE +     // path to '_appcds/jsa/classes.jsa'    
+          "-classpath" + NEW_LINE + 
+          "# the first %d entries are shared and the last %d entries (starting at line %d) are private" +
+          NEW_LINE + "%s" + NEW_LINE + 
+          "# application's main class" + NEW_LINE + 
+          "%s" + NEW_LINE +
+          "# Carefully generated with " + MY_PRETTY_NAME + NEW_LINE;
+
+  /**
+   * Argfile template to be used in processing of single application
+   */
+  public static final String SINGLE_ARGFILE_TEMPLATE =
+      "-classpath" + NEW_LINE + 
+          "# there are %d entries in this classpath: 1 for the app itself and %d for its libraries " + NEW_LINE + 
+          "%s" + NEW_LINE + 
+          "# application's main class" + NEW_LINE + 
+          "%s" + NEW_LINE +
+          "# Carefully generated with " + MY_PRETTY_NAME + NEW_LINE;
+  /** Optional prefix to be used when JSA archive path is already known */
+  public static final String SINGLE_ARGFILE_PREFIX = "-XX:SharedArchiveFile=%s" + NEW_LINE;
 
   public static final Collector<CharSequence, ?, String> TO_CLASSPATH = 
           joining(format("%s\\%s  ", PATH_SEPARATOR, NEW_LINE), " \"", "\"");

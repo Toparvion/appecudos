@@ -110,7 +110,7 @@ public class Collate implements Callable<CollationResult> {
           processFatJar(allEntries, arg);
 
         } else {
-          var concretePath = absolutify(Paths.get(arg));
+          var concretePath = PathUtils.absolutify(Paths.get(arg), root);
           if (Files.isDirectory(concretePath)) {
             log.log(DEBUG, "Processing path ''{0}'' as directory...", arg);
             List<PathEntry> dirEntries = getDirFileNames(concretePath);
@@ -146,7 +146,7 @@ public class Collate implements Callable<CollationResult> {
 
     // merging output
     if (mergingOutPath != null) {
-      mergingOutPath = absolutify(mergingOutPath);
+      mergingOutPath = PathUtils.absolutify(mergingOutPath, root);
       try {
         Set<String> merging = collationResult.getMerging();
         Files.write(mergingOutPath, merging);
@@ -159,7 +159,7 @@ public class Collate implements Callable<CollationResult> {
 
     // intersection output
     if (intersectionOutPath != null) {
-      intersectionOutPath = absolutify(intersectionOutPath);
+      intersectionOutPath = PathUtils.absolutify(intersectionOutPath, root);
       try {
         Set<String> intersection = collationResult.getIntersection();
         Files.write(intersectionOutPath, intersection);
@@ -252,7 +252,7 @@ public class Collate implements Callable<CollationResult> {
    */
   private void processFatJar(Map<String, List<?>> allEntries, String fatJarPathStr) throws IOException {
     log.log(INFO, "Processing path ''{0}'' as Spring Boot ''fat'' JAR...", fatJarPathStr);
-    var fatJarPath = absolutify(Paths.get(fatJarPathStr));
+    var fatJarPath = PathUtils.absolutify(Paths.get(fatJarPathStr), root);
     try (JarFile jarFile = new JarFile(fatJarPath.toString())) {
       String startClass = jarFile.getManifest().getMainAttributes().getValue("Start-Class");
       if (startClass == null) {
@@ -275,13 +275,6 @@ public class Collate implements Callable<CollationResult> {
     return (entryName.startsWith("BOOT-INF/") 
             || entryName.startsWith("WEB-INF/"))
             && entryName.toLowerCase().endsWith(".jar");
-  }
-
-  private Path absolutify(Path path) {
-    if (!path.isAbsolute()) {
-      path = root.resolve(path);
-    }
-    return path;
   }
 
   private static List<PathEntry> getDirFileNames(Path dirPath) throws IOException {

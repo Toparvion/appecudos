@@ -5,6 +5,7 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.*;
 import java.util.*;
 
+import static java.lang.System.Logger.Level.*;
 import static java.util.stream.Collectors.*;
 import static picocli.CommandLine.*;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
@@ -16,16 +17,19 @@ import static picocli.CommandLine.Help.Visibility.ALWAYS;
         mixinStandardHelpOptions = true,
         description = "Estimates class load logs for AppCDS efficiency")
 public class Estimate implements Runnable {
+  private static final System.Logger log = System.getLogger(Estimate.class.getSimpleName());
 
   private enum SourceType {
     SHARED,
     FILE,
+    JAR,
     JRT,
     OTHER
   } 
   private static Map<String, SourceType> SOURCE_TYPE_MARKERS = Map.of(
           "source: shared", SourceType.SHARED, 
           "source: file:", SourceType.FILE,
+          "source: jar:", SourceType.JAR,
           "source: jrt:", SourceType.JRT
   );
   @Option(names = {"--root", "-r"}, paramLabel = "<workDir>", showDefaultValue = ALWAYS)
@@ -38,16 +42,17 @@ public class Estimate implements Runnable {
   public void run() {
     try {
       assert root.isAbsolute() : "--root must be absolute if specified";
-      System.out.printf("Estimating AppCDS efficiency by Glob pattern '%s' in directory '%s'...\n", classLoadLogGlob, root);
+      log.log(INFO, "Estimating AppCDS efficiency by Glob pattern ''{0}'' in directory ''{1}''...",
+          classLoadLogGlob, root);
       PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + classLoadLogGlob);
       IntSummaryStatistics stats = Files.walk(root)
               .filter(pathMatcher::matches)
               .mapToInt(this::estimate)
               .filter(percent -> percent != 0)
               .summaryStatistics();
-      System.out.printf("Stats: min=%d%%, max=%d%%, cnt=%d\n", stats.getMin(), stats.getMax(), stats.getCount());
-      System.out.printf("Estimating took %d ms.\n", ManagementFactory.getRuntimeMXBean().getUptime());
-      System.out.printf("Average shared part: %.0f%%\n", stats.getAverage());
+      log.log(INFO,"Stats: min={0}%, max={1}%, cnt={2}", stats.getMin(), stats.getMax(), stats.getCount());
+      log.log(INFO,"Estimating took {0} ms.", ManagementFactory.getRuntimeMXBean().getUptime());
+      log.log(INFO,"Average shared part: {0}%", stats.getAverage());
   
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -56,7 +61,7 @@ public class Estimate implements Runnable {
 
   private int estimate(Path classLoadLogPath) {
     try {
-      System.out.printf("File: %s\n", classLoadLogPath);
+      log.log(INFO, "File: {0}", classLoadLogPath);
       TreeMap<SourceType, Integer> localStats = Files.readAllLines(classLoadLogPath)
               .stream()
               .filter(this::relevantLinesOnly)
@@ -66,17 +71,14 @@ public class Estimate implements Runnable {
       int sharedCount = localStats.getOrDefault(SourceType.SHARED, 0);
       int totalCount = localStats.values().stream().mapToInt(Integer::intValue).sum();
       int sharedPart = Math.round(((float)sharedCount / totalCount) * 100f);
-      // System.out.println("============================================================");
-      localStats.forEach((type, count) -> System.out.printf("%s -> %d\n", type, count));
-      System.out.printf("Shared part: %d%%\n", sharedPart);
+      var sb = new StringBuilder("Class sources distribution:\n");
+      localStats.forEach((type, count) -> sb.append(type).append(" -> ").append(count).append('\n'));
+      log.log(INFO, "{0}\nShared part: {1}%", sb.toString(), sharedPart);
       return sharedPart;
 
     } catch (Exception e) {
       e.printStackTrace();
       return 0;
-      
-    } finally {
-      System.out.println("============================================================");       
     }
   }
 
