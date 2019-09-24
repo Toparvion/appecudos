@@ -5,7 +5,7 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.*;
 import java.util.*;
 
-import static java.lang.System.Logger.Level.*;
+import static java.lang.System.Logger.Level.INFO;
 import static java.util.stream.Collectors.*;
 import static picocli.CommandLine.*;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
@@ -24,13 +24,15 @@ public class Estimate implements Runnable {
     FILE,
     JAR,
     JRT,
+    GENERATED,
     OTHER
   } 
   private static Map<String, SourceType> SOURCE_TYPE_MARKERS = Map.of(
           "source: shared", SourceType.SHARED, 
           "source: file:", SourceType.FILE,
           "source: jar:", SourceType.JAR,
-          "source: jrt:", SourceType.JRT
+          "source: jrt:", SourceType.JRT,
+          "source: __", SourceType.GENERATED
   );
   @Option(names = {"--root", "-r"}, paramLabel = "<workDir>", showDefaultValue = ALWAYS)
   private Path root = Paths.get(System.getProperty("user.dir"));
