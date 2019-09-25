@@ -65,7 +65,7 @@ public class Evert implements Callable<List<String>> {
       for (String fatJarArg : fatJarArgs) {
         if (fatJarArg.contains("*") || fatJarArg.contains("{")) {                   // Glob pattern
           log.log(DEBUG, "Processing ''{0}'' as Glob pattern...", fatJarArg);
-          PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + fatJarArgs);
+          PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + fatJarArg);
           // here we filter JAR files only, postponing detection of whether they are fat ones to 'process' method
           List<String> curLibDirPaths = Files.walk(root)
               .filter(pathMatcher::matches)

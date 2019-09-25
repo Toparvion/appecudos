@@ -73,8 +73,8 @@ public class Estimate implements Runnable {
       int sharedCount = localStats.getOrDefault(SourceType.SHARED, 0);
       int totalCount = localStats.values().stream().mapToInt(Integer::intValue).sum();
       int sharedPart = Math.round(((float)sharedCount / totalCount) * 100f);
-      var sb = new StringBuilder("Class sources distribution:\n");
-      localStats.forEach((type, count) -> sb.append(type).append(" -> ").append(count).append('\n'));
+      var sb = new StringBuilder("Class sources distribution:");
+      localStats.forEach((type, count) -> sb.append('\n').append(type).append(" -> ").append(count));
       log.log(INFO, "{0}\nShared part: {1}%", sb.toString(), sharedPart);
       return sharedPart;
 

@@ -146,22 +146,22 @@ public class JCudos implements Runnable {
   /**
    * Stage B - fat JARs processing
    * @param root root directory of microservices
-   * @param fatJarsGlob relative Glob patterns to find out files to process
+   * @param fatJarsGlobs relative Glob patterns to find out files to process
    * @param exclusionGlobs a set of excluding globs
    * @param outDir output directory path, e.g. {@code _shared/}
    * @return a list of string paths to {@code lib} directories created next to fat JARs
    */
-  private List<String> processFatJars(Path root, List<String> fatJarsGlob, Set<String> exclusionGlobs, Path outDir) {
+  private List<String> processFatJars(Path root, List<String> fatJarsGlobs, Set<String> exclusionGlobs, Path outDir) {
     // B.(1-4)
     Evert evertCommand = new Evert();
     evertCommand.setRoot(root);
-    evertCommand.setFatJarArgs(fatJarsGlob);
+    evertCommand.setFatJarArgs(fatJarsGlobs);
     evertCommand.setExclusionGlobs(exclusionGlobs);
     evertCommand.setOutDir(outDir);
     evertCommand.setArgFilePath(null);      // to disable argFile creation as we'll do it later and differently
     List<String> libOutDirPaths = evertCommand.call();
     if (libOutDirPaths.isEmpty()) {
-      log.log(ERROR, "No fat JARs were processed by Glob ''{0}'' in directory ''{1}''.", fatJarsGlob, root);
+      log.log(ERROR, "No fat JARs were processed by Glob ''{0}'' in directory ''{1}''.", fatJarsGlobs, root);
       throw new JCudosException();
     }
     
