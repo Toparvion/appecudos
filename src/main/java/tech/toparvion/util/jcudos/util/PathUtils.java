@@ -4,12 +4,8 @@ import tech.toparvion.util.jcudos.Constants.ListConversion;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.nio.file.*;
+import java.util.*;
 
 import static java.lang.System.Logger.Level.INFO;
 import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
@@ -109,6 +105,12 @@ public final class PathUtils {
     return listConversion;
   }
 
+  /**
+   * Resolves the {@code localPath} against the {@code root} if the former is not already absolute one.
+   * @param localPath path to make absolute
+   * @param root directory path to be used as base for resolving {@code localPath}     
+   * @return {@code localPath} resolved against the {@code root} or {@code localPath} with no changes
+   */
   public static Path absolutify(Path localPath, Path root) {
     if (!localPath.isAbsolute()) {
       localPath = root.resolve(localPath);
