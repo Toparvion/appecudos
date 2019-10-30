@@ -1,7 +1,10 @@
 package tech.toparvion.util.jcudos.util;
 
 import java.nio.file.*;
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author Toparvion
@@ -60,7 +63,7 @@ public class Traverser {
           break;
           
         case GLOB:
-          resultPaths.addAll(takeGlob(pathArg, exclusionMatchers));
+          //resultPaths.addAll(takeGlob(pathArg, exclusionMatchers));
           break;
           
         default:
@@ -68,6 +71,7 @@ public class Traverser {
       }
 
     }
+    return null;
   }
 
   private static Set<String> takeDirectory(Path dirPath, Set<PathMatcher> exclusionMatchers) {

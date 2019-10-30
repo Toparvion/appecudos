@@ -347,12 +347,17 @@ public class JCudos implements Runnable {
   /**
    * Resolves path to output directory against root path. Then creates output directory (including all its parents
    * if necessary) and puts a lock file into it. The latter is needed to prevent jCudos processes from performing 
-   * simultaneously.
+   * simultaneously.<br/>
+   * If the output directory is busy the method can retry to occupy it some time later. The behavior is controlled with 
+   * {@code tech.toparvion.util.jcudos.OccupationRetries} and {@code tech.toparvion.util.jcudos.OccupationRetriesPeriodSec} 
+   * system properties. The first one sets the total amount of retry attempts (including 
+   * the very first one) and defaults to 1. The second one sets the period (in seconds) between successive attempts 
+   * and defaults to 5. 
    * @param outDir output directory to create (may already exist)
    * @throws IOException in case of IO error during creating
    * @return (possibly changed) path to output directory
    */
-  private Path occupyOutDir(Path root, Path outDir) throws IOException {
+  private Path occupyOutDir(Path root, Path outDir) throws IOException, InterruptedException {
     // fix output dir path
     if (!outDir.isAbsolute()) {
       outDir = root.resolve(outDir);
@@ -360,7 +365,27 @@ public class JCudos implements Runnable {
     // create output dir if necessary
     Files.createDirectories(outDir);
     // put a lock file 
-    Files.createFile(outDir.resolve(LOCK_FILE_NAME));
+    int retriesCount = Integer.getInteger("tech.toparvion.util.jcudos.OccupationRetries", 1);
+    int retriesPeriod = Integer.getInteger("tech.toparvion.util.jcudos.OccupationRetriesPeriodSec", 5);
+    FileAlreadyExistsException lastException = null;
+    for (int i = 0; i < retriesCount; i++) {
+      try {
+        log.log(INFO, "Occupying output dir ''{0}'', attempt {1} of {2}...", outDir, (i+1), retriesCount);
+        Files.createFile(outDir.resolve(LOCK_FILE_NAME));     // may throw FileAlreadyExistsException
+        lastException = null;
+        break;
+      } catch (FileAlreadyExistsException ex) {
+        lastException = ex;   // remember the exception to rethrow it later if necessary
+        if (i < retriesCount-1) {
+          log.log(INFO, "Output directory is busy. Will try again in {0} seconds...", retriesPeriod);
+          Thread.sleep(retriesPeriod*1000);
+        }
+      }
+    }
+    if (lastException != null) {
+      throw lastException;
+    }
+
     // return (possibly fixed) path
     return outDir;
   }
