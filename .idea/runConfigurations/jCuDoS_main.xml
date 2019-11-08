@@ -3,7 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="tech.toparvion.util.jcudos.JCudos" />
     <module name="jcudos.main" />
     <option name="PROGRAM_PARAMETERS" value="--class-lists **/log/*-classes.list --fat-jars **/build/libs/*.jar --exclusion **/pushkin/** --out-dir _appcds/" />
-    <option name="VM_PARAMETERS" value="-ea" />
+    <option name="VM_PARAMETERS" value="-ea -Dtech.toparvion.util.jcudos.OccupationRetries=5" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../upc2/microservices" />
     <extension name="coverage">
       <pattern>

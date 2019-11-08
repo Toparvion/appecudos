@@ -177,8 +177,8 @@ public class Evert implements Callable<List<String>> {
         ZipEntry nextEntry;
         while ((nextEntry = zis.getNextEntry()) != null) {
           String archivedEntryPath = nextEntry.getName();
-          var isPathAcceptable = (archivedEntryPath.startsWith("BOOT-INF/")
-                  || archivedEntryPath.startsWith("WEB-INF/"))
+          var isPathAcceptable = (archivedEntryPath.startsWith(BOOT_INF_DIR)
+                  || archivedEntryPath.startsWith(WEB_INF_DIR))
                   && archivedEntryPath.toLowerCase().endsWith(".jar");
           if (!isPathAcceptable) {
             continue;
@@ -189,7 +189,7 @@ public class Evert implements Callable<List<String>> {
           try (OutputStream nextFileOutStream = Files.newOutputStream(extractedEntryPath)) {
             zis.transferTo(nextFileOutStream);
           }
-  //        System.out.printf("File '%s' extracted to '%s'\n", archivedEntryPath, extractedEntryPath);
+          // System.out.printf("File '%s' extracted to '%s'\n", archivedEntryPath, extractedEntryPath);
           filesCount++;
         }
         zis.closeEntry();

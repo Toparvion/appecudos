@@ -21,8 +21,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static picocli.CommandLine.*;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
+import static tech.toparvion.util.jcudos.Constants.BOOT_INF_DIR;
 import static tech.toparvion.util.jcudos.Constants.ListConversion.AUTO;
 import static tech.toparvion.util.jcudos.Constants.ListConversion.ON;
+import static tech.toparvion.util.jcudos.Constants.WEB_INF_DIR;
 
 /**
  * @author Toparvion
@@ -272,8 +274,8 @@ public class Collate implements Callable<CollationResult> {
 
   private boolean nestedJarFilter(JarEntry jarEntry) {
     String entryName = jarEntry.getName();
-    return (entryName.startsWith("BOOT-INF/") 
-            || entryName.startsWith("WEB-INF/"))
+    return (entryName.startsWith(BOOT_INF_DIR) 
+            || entryName.startsWith(WEB_INF_DIR))
             && entryName.toLowerCase().endsWith(".jar");
   }
 

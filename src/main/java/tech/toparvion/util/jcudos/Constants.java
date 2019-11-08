@@ -2,6 +2,7 @@ package tech.toparvion.util.jcudos;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.jar.Attributes;
 import java.util.stream.Collector;
 
@@ -58,9 +59,16 @@ public final class Constants {
   public static final Path SHARED_ARGFILE_PATH = SHARED_ROOT.resolve("list/classpath.arg");
   public static final Path SHARED_ARCHIVE_PATH = SHARED_ROOT.resolve("jsa/classes.jsa");
 
+  public static final String SPRING_BOOT_START_CLASS_ATTRIBUTE = "Start-Class";
   public static final String APPCDS_ARGFILE_NAME = "appcds.arg";
   public static final String START_CLASS_FILE_NAME = "start-class.txt";
-  public static final Attributes.Name START_CLASS_ATTRIBUTE_NAME = new Attributes.Name("Start-Class");
+  public static final Attributes.Name START_CLASS_ATTRIBUTE_NAME = new Attributes.Name(SPRING_BOOT_START_CLASS_ATTRIBUTE);
+  
+  public static final String JDK_MAIN_CLASS_ATTRIBUTE = "Main-Class";
+  public static final List<String> BASE_ATTRIBUTES_NAMES = List.of(JDK_MAIN_CLASS_ATTRIBUTE, SPRING_BOOT_START_CLASS_ATTRIBUTE);
+  
+  public static final String BOOT_INF_DIR = "BOOT-INF/";
+  public static final String WEB_INF_DIR = "WEB-INF/";
 
   public static final String LIB_DIR_NAME = "lib";
   public static final String LOCK_FILE_NAME = ".lock";
@@ -74,7 +82,9 @@ public final class Constants {
   public static final String CLASSLOADING_TRACE_TAGS = "class,load";
 
   /**
-   * Global mode flag for choosing between different approaches to comparing files with each other
+   * Global mode flag for choosing between different approaches to comparing files with each other.
+   * Precisely speaking it's not a constant because it has no {@code final} modifier but in fact, once assigned, its 
+   * value stays the same for the whole runtime and thus can be considered constant.
    */
   public static boolean PRECISE_FILE_COMPARISON_MODE;
 
