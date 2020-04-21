@@ -41,12 +41,13 @@ import static tech.toparvion.util.jcudos.util.GeneralUtils.suppress;
         })
 public class JCudos implements Runnable {
   private static final System.Logger log;
-
+  
   static {
     System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
     log = System.getLogger(JCudos.class.getSimpleName());
   }
-
+  
+  //<editor-fold desc="Injected Fields">
   @Option(names = {"--class-lists", "-c"}/*, required = true*/)
   private List<String> classListGlob;
   
@@ -61,7 +62,8 @@ public class JCudos implements Runnable {
   
   @Option(names = {"--work-dir", "-w"}, paramLabel = "<workDir>")
   private Path root = Paths.get(System.getProperty("user.dir"));
-
+  //</editor-fold>
+  
   //<editor-fold desc="Entry point">
   public static void main(String[] args) {
     var commandLine = new CommandLine(new JCudos());
