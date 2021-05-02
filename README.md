@@ -1,10 +1,10 @@
-# jCuDoS – An AppCDS automation toolchain for Spring Boot :building_construction:
+# jCuDoS – An AppCDS automation toolchain for Spring Boot
 
 jCuDos is a set of CLI tools for simplifying the use of [Application Class Data Sharing](https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-31503FCE-93D0-4175-9B4F-F6A738B2F4C4) to multiple Spring Boot applications of the same project. Usually such applications have quite large common subset of the same classes (from JDK to Spring to application libraries) what makes the leveraging of AppCDS beneficial from both startup time and (especially) memory footprint point of view.
 
 ## Project status
 
-*:warning: **The project is not completed.** It implements the very basic algorithm (see below) and needs some additional work to become production-ready. Please feel free to support its further development by forking, making an issue/PR, documenting or just giving the feedback.*
+*:warning: **The project is not completed and the work is discontinued.** It implements the very basic algorithm (see below) and needs some additional work to become production-ready. Please feel free to support its further development by forking, making an issue/PR, documenting or just giving the feedback.*
 
 ## Description
 
